@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV University - Department Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .department-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .badge-active {
+            background-color: #10b981;
+        }
+
+        .badge-inactive {
+            background-color: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .department-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .context-menu {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
+            <div class="p-4 flex items-center justify-between border-b border-blue-700">
+                <div class="flex items-center">
+                    <i class="fas fa-file-contract text-2xl mr-3"></i>
+                    <span class="sidebar-text font-bold text-xl">Gestión Documental</span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-6">
+                    <div class="text-blue-200 uppercase text-xs font-semibold mb-2 sidebar-text">Menú Principal</div>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="Procedimientos.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fas fa-file-pdf mr-3"></i>
+                                <span class="sidebar-text">Procedimientos</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="Direcciones.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fa-regular fa-newspaper mr-3"></i>
+                                <span class="sidebar-text">Direcciones</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between p-4">
+                    <h1 class="text-2xl font-bold text-gray-800">Direcciones</h1>
+                </div>
+            </header>
+
+            <main class="p-6">
+                <!-- Department Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Total de Direcciones</p>
+                                <h3 class="text-2xl font-bold text-blue-900">12</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-building text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Direcciones Activas</p>
+                                <h3 class="text-2xl font-bold text-green-600">10</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Jefes de Direcciones</p>
+                                <h3 class="text-2xl font-bold text-indigo-600">10</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                                <i class="fas fa-user-tie text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Total de Procedimientos</p>
+                                <h3 class="text-2xl font-bold text-purple-600">40</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-folder text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Actions -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <div class="flex items-center space-x-4">
+                        <button onclick="openNewDepartmentModal()"
+                            class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
+                            <i class="fas fa-plus"></i>
+                            <span>Nueva Dirección</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Department List -->
+                <div class="department-grid">
+                    <!-- Department Cards -->
+
+
+                    <a href="Procedimientos.html" class="department-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-flask"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Dirección General de Recursos Humanos</h3>
+                                    <p class="text-xs text-gray-500">8 Miembros</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="dept2">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="px-2 py-1 text-xs rounded-full badge-active text-white">Activa</span>
+                                <div class="text-sm text-gray-500">
+                                    <i class="fas fa-file-alt mr-1"></i>
+                                    <span>15 Procedimientos</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-tie mr-2"></i>
+                                <span>Lic. Rosa Aidé Villalobos Betancourt </span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación: May 13, 2025
+                            </div>
+                        </div>
+                    </a>
+
+                    <div class="department-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Dirección General de Recursos Financieros</h3>
+                                    <p class="text-xs text-gray-500">6 Miembros</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="dept3">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="px-2 py-1 text-xs rounded-full badge-active text-white">Activa</span>
+                                <div class="text-sm text-gray-500">
+                                    <i class="fas fa-file-alt mr-1"></i>
+                                    <span>18 Procedimientos</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-tie mr-2"></i>
+                                <span>Mtra. Bertha Dolores Martínez Hernández</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación: Abr 12, 2025
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="department-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Unidad de Organización y Métodos</h3>
+                                    <p class="text-xs text-gray-500">5 Miembros</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="dept4">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="px-2 py-1 text-xs rounded-full badge-active text-white">Activa</span>
+                                <div class="text-sm text-gray-500">
+                                    <i class="fas fa-file-alt mr-1"></i>
+                                    <span>4 Procedimientos</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-tie mr-2"></i>
+                                <span>Lic. Álvaro Gabriel Hernández</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación: Feb 8, 2025
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- New Department Modal -->
+    <div id="newDepartmentModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Crear nueva Dirección</h3>
+                                <button onclick="closeNewDepartmentModal()" class="text-gray-400 hover:text-gray-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <form id="departmentForm">
+                                    <div class="mb-4">
+                                        <label for="deptName"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Nombre de Dirección
+                                            *</label>
+                                        <input type="text" id="deptName" name="deptName"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="deptHead" class="block text-sm font-medium text-gray-700 mb-1">Jefe
+                                            de la Dirección *</label>
+                                        <input type="text" id="deptName" name="deptName"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="deptStatus"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Secretaría *</label>
+                                        <select id="deptStatus" name="deptStatus"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                            <option value="">Selecciona la Secretaría</option>
+                                            <option value="active">Secretaría de Administración y Finanzas</option>
+                                            <option value="inactive">Secretaría Académica</option>
+                                            <option value="inactive">Secretaría de Desarrollo Institucional</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="submitDepartmentForm()"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Crear Dirección
+                    </button>
+                    <button type="button" onclick="closeNewDepartmentModal()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div id="successNotification" class="fixed bottom-4 right-4 hidden">
+        <div class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>Department created successfully!</span>
+            <button onclick="closeNotification()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Context Menu Handling
+        const contextMenuButtons = document.querySelectorAll('.context-menu-btn');
+
+        contextMenuButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const menuId = button.dataset.id + '-menu';
+                const menu = document.getElementById(menuId);
+
+                // Close all other menus first
+                document.querySelectorAll('.context-menu').forEach(m => {
+                    if (m.id !== menuId) {
+                        m.classList.remove('active');
+                    }
+                });
+
+                // Toggle the clicked menu
+                menu.classList.toggle('active');
+
+                // Position the menu
+                const rect = button.getBoundingClientRect();
+                menu.style.top = `${rect.bottom}px`;
+                menu.style.left = `${rect.left - menu.offsetWidth + button.offsetWidth}px`;
+            });
+        });
+
+        // Close menus when clicking elsewhere
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        });
+
+        // Department Modal Functions
+        function openNewDepartmentModal() {
+            document.getElementById('newDepartmentModal').classList.remove('hidden');
+        }
+
+        function closeNewDepartmentModal() {
+            document.getElementById('newDepartmentModal').classList.add('hidden');
+            resetDepartmentForm();
+        }
+
+        function resetDepartmentForm() {
+            document.getElementById('departmentForm').reset();
+        }
+
+        // Form Submission
+        function submitDepartmentForm() {
+            const form = document.getElementById('departmentForm');
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    field.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+
+            if (!isValid) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // In a real app, you would submit the form to a server here
+            // For this demo, we'll just show a success message
+            closeNewDepartmentModal();
+            showSuccessNotification();
+        }
+
+        // Success Notification
+        function showSuccessNotification() {
+            const notification = document.getElementById('successNotification');
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
+
+        function closeNotification() {
+            document.getElementById('successNotification').classList.add('hidden');
+        }
+
+        // Add fade-in animation to stats
+        document.addEventListener('DOMContentLoaded', () => {
+            const stats = document.querySelectorAll('.fade-in');
+            stats.forEach((stat, index) => {
+                stat.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+
+</html>

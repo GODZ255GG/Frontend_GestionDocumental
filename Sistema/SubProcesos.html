@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV University - Document Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-preview {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .document-card:hover .quick-preview {
+            opacity: 1;
+        }
+
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #3b82f6;
+            background-color: #f0f7ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #3b82f6;
+            background-color: #ebf5ff;
+        }
+
+        .badge-draft {
+            background-color: #f59e0b;
+        }
+
+        .badge-active {
+            background-color: #10b981;
+        }
+
+        .badge-archived {
+            background-color: #64748b;
+        }
+
+        .badge-pending {
+            background-color: #6366f1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .folder-card>div.p-4.border-b {
+            flex-wrap: nowrap;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center {
+            min-width: 0;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center>div {
+            min-width: 0;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center>div h3,
+        .folder-card>div.p-4.border-b .flex.items-center>div p {
+            white-space: normal;
+            overflow-wrap: break-word;
+            overflow: visible;
+            text-overflow: clip;
+            max-width: none;
+        }
+
+        .document-tab {
+            transition: all 0.2s ease;
+        }
+
+        .document-tab.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .document-view-toggle {
+            transition: all 0.2s ease;
+        }
+
+        .document-view-toggle.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .document-card {
+            transition: all 0.2s ease;
+        }
+
+        .document-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .folder-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .context-menu {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
+            <div class="p-4 flex items-center justify-between border-b border-blue-700">
+                <div class="flex items-center">
+                    <i class="fas fa-file-contract text-2xl mr-3"></i>
+                    <span class="sidebar-text font-bold text-xl">Gestión Documental</span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-6">
+                    <div class="text-blue-200 uppercase text-xs font-semibold mb-2 sidebar-text">Menú Principal</div>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="Procedimientos.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fas fa-file-pdf mr-3"></i>
+                                <span class="sidebar-text">Procedimientos</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="Direcciones.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fa-regular fa-newspaper mr-3"></i>
+                                <span class="sidebar-text">Direcciones</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between p-4">
+                    <h1 class="text-2xl font-bold text-gray-800">SubProcesos - Dirección General de Recursos Humanos
+                    </h1>                </div>
+            </header>
+
+            <main class="p-6">
+                <!-- Document Tabs and View Options -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <div class="flex space-x-6 mb-4 md:mb-0 overflow-x-auto pb-2">
+                        <button class="document-tab active px-1 py-2 text-gray-600" data-tab="all">
+                            <span>Todos</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="openUploadModal()"
+                            class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
+                            <i class="fas fa-plus"></i>
+                            <span>Nuevo SubProceso</span>
+                        </button>
+                    </div>
+                </div>
+
+
+
+                <!-- Grid View (Default) -->
+                <div id="gridView" class="document-grid">
+                    <!-- Folders -->
+                    <a href="Procedimientos.html"
+                        class="folder-card bg-white rounded-lg shadow overflow-hidden transition-all block hover:no-underline">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-folder"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="font-medium text-gray-800 truncate">Ingreso</h3>
+                                    <p class="text-xs text-gray-500 truncate"></p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="folder1">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-edit mr-2"></i>
+                                <span>Última Modificación por Dra. Alessandra </span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación hace 2 días
+                            </div>
+                        </div>
+                        <!-- Context Menu -->
+                        <div id="folder1-menu"
+                            class="context-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
+                                    class="fas fa-edit mr-2"></i>Editar</a>
+                            <div class="border-t border-gray-200"></div>
+                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><i
+                                    class="fas fa-trash mr-2"></i>Eliminar</a>
+                        </div>
+                    </a>
+
+
+                    <div class="folder-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-folder"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="font-medium text-gray-800 truncate">Permanencia</h3>
+                                    <p class="text-xs text-gray-500 truncate"></p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="folder1">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-edit mr-2"></i>
+                                <span>Última Modificación por Dra. Alessandra</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación hace 1 semana
+                            </div>
+                        </div>
+                        <div id="folder1-menu"
+                            class="context-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
+                                    class="fas fa-edit mr-2"></i>Editar</a>
+                            <div class="border-t border-gray-200"></div>
+                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><i
+                                    class="fas fa-trash mr-2"></i>Eliminar</a>
+                        </div>
+                    </div>
+
+                    <div class="folder-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-folder"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="font-medium text-gray-800 truncate"> Retiro</h3>
+                                    <p class="text-xs text-gray-500"></p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="folder2">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-user-edit mr-2"></i>
+                                <span>Última Modificación por Dra. Alessandra</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400">
+                                Última Modificación 12 horas atrás
+                            </div>
+                        </div>
+                        <!-- Context Menu -->
+                        <div id="folder1-menu"
+                            class="context-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
+                                    class="fas fa-edit mr-2"></i>Editar</a>
+                            <div class="border-t border-gray-200"></div>
+                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><i
+                                    class="fas fa-trash mr-2"></i>Eliminar</a>
+                        </div>
+                    </div>
+
+
+
+                    <!-- List View (Hidden by default) -->
+                    <div id="listView" class="hidden bg-white rounded-lg shadow overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Name</th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Department</th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Last Updated</th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status</th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="flex-shrink-0 h-10 w-10 bg-red-100 rounded-md flex items-center justify-center text-red-600">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Academic Calendar
+                                                        2023-24</div>
+                                                    <div class="text-sm text-gray-500">PDF • 2.4MB</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Registrar's Office
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 15, 2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full badge-active text-white">Active</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-blue-600 hover:text-blue-900"><i
+                                                        class="fas fa-eye"></i></button>
+                                                <button class="text-yellow-600 hover:text-yellow-900"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="text-gray-600 hover:text-gray-900"><i
+                                                        class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center text-blue-600">
+                                                    <i class="fas fa-file-word"></i>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Research Ethics
+                                                        Policy</div>
+                                                    <div class="text-sm text-gray-500">DOCX • 1.8MB</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Research Office
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">April 28, 2023
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full badge-active text-white">Active</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-blue-600 hover:text-blue-900"><i
+                                                        class="fas fa-eye"></i></button>
+                                                <button class="text-yellow-600 hover:text-yellow-900"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="text-gray-600 hover:text-gray-900"><i
+                                                        class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="flex-shrink-0 h-10 w-10 bg-green-100 rounded-md flex items-center justify-center text-green-600">
+                                                    <i class="fas fa-file-excel"></i>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Faculty Travel
+                                                        Expense Form</div>
+                                                    <div class="text-sm text-gray-500">XLSX • 356KB</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Human Resources
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">January 5, 2023
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full badge-archived text-white">Archived</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-blue-600 hover:text-blue-900"><i
+                                                        class="fas fa-eye"></i></button>
+                                                <button class="text-yellow-600 hover:text-yellow-900"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="text-gray-600 hover:text-gray-900"><i
+                                                        class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-md flex items-center justify-center text-purple-600">
+                                                    <i class="fas fa-file-powerpoint"></i>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">New Student
+                                                        Orientation</div>
+                                                    <div class="text-sm text-gray-500">PPTX • 5.2MB</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Student Affairs
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">June 2, 2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full badge-pending text-white">Pending</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-blue-600 hover:text-blue-900"><i
+                                                        class="fas fa-eye"></i></button>
+                                                <button class="text-yellow-600 hover:text-yellow-900"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="text-gray-600 hover:text-gray-900"><i
+                                                        class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="flex-shrink-0 h-10 w-10 bg-yellow-100 rounded-md flex items-center justify-center text-yellow-600">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Graduate Admissions
+                                                        Handbook</div>
+                                                    <div class="text-sm text-gray-500">PDF • 3.7MB</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Graduate Studies
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">March 10, 2023
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full badge-draft text-white">Draft</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-blue-600 hover:text-blue-900"><i
+                                                        class="fas fa-eye"></i></button>
+                                                <button class="text-yellow-600 hover:text-yellow-900"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="text-gray-600 hover:text-gray-900"><i
+                                                        class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div class="text-sm text-gray-500">
+                                Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of
+                                <span class="font-medium">24</span> documents
+                            </div>
+                            <div class="flex space-x-2">
+                                <button
+                                    class="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button
+                                    class="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Upload Document Modal -->
+    <div id="uploadModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Nuevo SubProceso</h3>
+                                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <form id="uploadForm">
+                                    <div class="mb-4">
+                                        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Titulo
+                                            *</label>
+                                        <input type="text" id="title" name="title"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="creationDate"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Fecha de
+                                            Creación</label>
+                                        <input type="text" id="creationDate" name="creationDate"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100"
+                                            value="June 10, 2023" readonly>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="submitUploadForm()"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Guardar SubProceso
+                    </button>
+                    <button type="button" onclick="closeUploadModal()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div id="successNotification" class="fixed bottom-4 right-4 hidden">
+        <div class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>Procedimiento subido correctamente!</span>
+            <button onclick="closeNotification()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+
+        // Document View Toggle
+        const viewToggleButtons = document.querySelectorAll('.document-view-toggle');
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+
+        viewToggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                viewToggleButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                if (button.dataset.view === 'grid') {
+                    gridView.classList.remove('hidden');
+                    listView.classList.add('hidden');
+                } else {
+                    gridView.classList.add('hidden');
+                    listView.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Document Tabs
+        const documentTabs = document.querySelectorAll('.document-tab');
+
+        documentTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                documentTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // In a real app, you would load the appropriate content for the selected tab
+            });
+        });
+
+        // Context Menu Handling
+        const contextMenuButtons = document.querySelectorAll('.context-menu-btn');
+
+        contextMenuButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const menuId = button.dataset.id + '-menu';
+                const menu = document.getElementById(menuId);
+
+                // Close all other menus first
+                document.querySelectorAll('.context-menu').forEach(m => {
+                    if (m.id !== menuId) {
+                        m.classList.remove('active');
+                    }
+                });
+
+                // Toggle the clicked menu
+                menu.classList.toggle('active');
+
+                // Position the menu
+                const rect = button.getBoundingClientRect();
+                menu.style.top = `${rect.bottom}px`;
+                menu.style.left = `${rect.left - menu.offsetWidth + button.offsetWidth}px`;
+            });
+        });
+
+        // Close menus when clicking elsewhere
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        });
+
+        // Upload Modal Functions
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.remove('hidden');
+            // Set current date
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('creationDate').value = today.toLocaleDateString('en-US', options);
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+            resetUploadForm();
+        }
+
+        function resetUploadForm() {
+            document.getElementById('uploadForm').reset();
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('fileUploadArea').classList.remove('hidden');
+        }
+
+        // File Upload Handling
+        const fileInput = document.getElementById('file');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFile');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    alert('File size exceeds 10MB limit');
+                    return;
+                }
+                fileName.textContent = file.name;
+                fileUploadArea.classList.add('hidden');
+                fileInfo.classList.remove('hidden');
+            }
+        });
+
+        // Drag and Drop Handling
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            fileUploadArea.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            fileUploadArea.classList.remove('dragover');
+        }
+
+        fileUploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        }
+
+        removeFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+            fileUploadArea.classList.remove('hidden');
+        });
+
+        // Form Submission
+        function submitUploadForm() {
+            const form = document.getElementById('uploadForm');
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    field.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+
+            if (!isValid) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // In a real app, you would submit the form to a server here
+            // For this demo, we'll just show a success message
+            closeUploadModal();
+            showSuccessNotification();
+        }
+
+        // Success Notification
+        function showSuccessNotification() {
+            const notification = document.getElementById('successNotification');
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
+
+        function closeNotification() {
+            document.getElementById('successNotification').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

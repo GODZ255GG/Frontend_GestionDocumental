@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Institucional - Acceso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .login-container {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn-primary {
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 rounded-xl overflow-hidden login-container bg-white">
+        <!-- Encabezado Institucional -->
+        <div class="gradient-bg py-6 px-8 text-center">
+            <div class="flex justify-center mb-4">
+                <div class="bg-white p-3 rounded-full">
+                    <i class="fas fa-university text-3xl text-blue-600"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Portal Institucional</h2>
+            <p class="mt-2 text-blue-100">Sistema de Gestión Documental</p>
+        </div>
+
+        <form class="px-8 pt-6 pb-8 mb-4" id="loginForm">
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-gray-700 text-sm font-medium" for="username">
+                        Usuario
+                    </label>
+                    <button type="button" class="text-xs text-blue-600 hover:text-blue-800" id="showHelp">
+                        <i class="fas fa-question-circle mr-1"></i> Ayuda
+                    </button>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-400"></i>
+                    </div>
+                    <input
+                        class="input-field w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                        id="username" type="text" placeholder="Ingrese su usuario">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-medium mb-2" for="password">
+                    Contraseña
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400"></i>
+                    </div>
+                    <input
+                        class="input-field w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                        id="password" type="password" placeholder="Ingrese su contraseña">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <button type="button" class="text-gray-400 hover:text-gray-600 focus:outline-none"
+                            id="togglePassword">
+                            <i id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <a class="text-xs text-blue-600 hover:text-blue-800" href="#">
+                        ¿Olvidó su contraseña?
+                    </a>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <button
+                    class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+                    type="submit">
+                    Iniciar Sesión <i class="fas fa-sign-in-alt ml-2"></i>
+                </button>
+            </div>
+
+            <div class="text-center">
+                <p class="text-gray-600 text-xs">
+                    Al acceder acepta nuestros <a href="#" class="text-blue-600 hover:text-blue-800">Términos</a> y <a
+                        href="#" class="text-blue-600 hover:text-blue-800">Política de Privacidad</a>.
+                </p>
+            </div>
+        </form>
+
+        <div class="px-8 py-4 bg-gray-50 border-t border-gray-200 text-center">
+            <p class="text-gray-600 text-sm">
+                ¿No tienes una cuenta? <a href="#" class="text-blue-600 hover:text-blue-800 font-medium">Contacta al
+                    administrador</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal de ayuda -->
+    <div id="helpModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center pb-3">
+                    <h3 class="text-xl font-semibold text-gray-800">Información de acceso</h3>
+                    <button id="closeHelp" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-gray-700">
+                        <span class="font-medium">Usuarios institucionales:</span> Utilice su correo institucional.
+                    </p>
+                    <p class="text-gray-700">
+                        <span class="font-medium">Estudiantes:</span> Use su número de matrícula.
+                    </p>
+                    <p class="text-gray-700">
+                        <span class="font-medium">Personal:</span> Credenciales proporcionadas por RRHH.
+                    </p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <p class="text-sm text-gray-600">
+                        Si continúa con problemas para acceder, contacte al soporte técnico.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!email || !password) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.message || 'Credenciales inválidas');
+                    return;
+                }
+
+                // Guardar en localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('usuario', JSON.stringify(data.user));
+
+                // Redirección según el rol
+                const rol = data.user.rol;
+
+                if (rol === 'Director de Personal' || rol === 'Director General de Recursos Humanos') {
+                    window.location.href = 'Procedimientos.html';
+                } else if (rol === 'SAF' || rol === 'OUM') {
+                    window.location.href = 'Direcciones.html';
+                } else {
+                    alert('Rol no reconocido. Contacte al administrador.');
+                }
+            } catch (error) {
+                console.error('Error de red:', error);
+                alert('No se pudo conectar al servidor');
+            }
+        });
+    </script>
+</body>
+
+</html>
