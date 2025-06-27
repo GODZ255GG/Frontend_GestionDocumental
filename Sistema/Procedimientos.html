@@ -215,6 +215,25 @@
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
         }
+
+        /* Estilos básicos para imitar el diseño de carpetas */
+        .procedimiento {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .procedimiento-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .acciones button {
+            margin-left: 5px;
+        }
     </style>
 </head>
 
@@ -1094,415 +1113,157 @@
     <script>
         // Módulo para manejar las peticiones a la API
         const ProcedimientoAPI = {
-            baseUrl: 'http://tu-api.com/api', // Reemplaza con la URL de tu API
+            baseUrl: 'http://localhost:3000/api',
 
-            async obtenerTodos(token) {
+            async obtenerPorDireccion(token) {
                 try {
-                    const response = await fetch(`${this.baseUrl}/procedimientos`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    if (!response.ok) throw new Error('Error al obtener procedimientos');
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error:', error);
-                    throw error;
-                }
-            },
+                    const usuario = JSON.parse(localStorage.getItem('usuario'));
+                    if (!usuario || !usuario.direccionId) {
+                        throw new Error('Usuario no tiene dirección asignada');
+                    }
 
-            async crearProcedimiento(token, datos) {
-                try {
-                    const response = await fetch(`${this.baseUrl}/procedimientos`, {
-                        method: 'POST',
+                    const response = await fetch(`${this.baseUrl}/procedimientos/por-direccion`, {
+                        method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(datos)
-                    });
-                    if (!response.ok) throw new Error('Error al crear procedimiento');
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error:', error);
-                    throw error;
-                }
-            },
-
-            async actualizarProcedimiento(token, id, datos) {
-                try {
-                    const response = await fetch(`${this.baseUrl}/procedimientos/${id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(datos)
-                    });
-                    if (!response.ok) throw new Error('Error al actualizar procedimiento');
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error:', error);
-                    throw error;
-                }
-            },
-
-            async eliminarProcedimiento(token, id) {
-                try {
-                    const response = await fetch(`${this.baseUrl}/procedimientos/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
                         }
                     });
-                    if (!response.ok) throw new Error('Error al eliminar procedimiento');
-                    return await response.json();
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `Error ${response.status}`);
+                    }
+
+                    const responseData = await response.json();
+
+                    // Validar la estructura de la respuesta
+                    if (!responseData.success) {
+                        throw new Error(responseData.message || 'Respuesta inválida del servidor');
+                    }
+
+                    return responseData.data || [];
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error('Error en obtenerPorDireccion:', error);
                     throw error;
                 }
             },
 
-            async obtenerSubprocesos(token) {
-                try {
-                    const response = await fetch(`${this.baseUrl}/subprocesos`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    if (!response.ok) throw new Error('Error al obtener subprocesos');
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error:', error);
-                    throw error;
-                }
-            }
+            // ... (mantén el resto de tus métodos igual)
         };
 
         // Variables globales
         let procedimientoActualId = null;
-        let selectedItems = []; // Para almacenar las direcciones con las que se comparte
+        let selectedItems = [];
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        // Función principal que se ejecuta al cargar la página
+        async function initPage() {
             const token = localStorage.getItem('token');
-            if (!token) {
+            const usuario = JSON.parse(localStorage.getItem('usuario'));
+
+            // Validar autenticación
+            if (!token || !usuario) {
                 window.location.href = 'index.html';
                 return;
             }
 
-            // Cargar procedimientos al iniciar
-            await cargarProcedimientos();
-
-            // Cargar subprocesos para el select
-            await cargarSubprocesos();
-
-            // Configurar eventos
-            configurarEventos();
-        });
-
-        async function cargarProcedimientos() {
             try {
-                const token = localStorage.getItem('token');
-                const procedimientos = await ProcedimientoAPI.obtenerTodos(token);
-                renderProcedimientos(procedimientos);
+                // Verificar si el token ha expirado
+                const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                if (tokenPayload.exp * 1000 < Date.now()) {
+                    throw new Error('Token expirado');
+                }
+
+                // Mostrar estado de carga
+                showLoadingState();
+
+                // Obtener procedimientos
+                const response = await ProcedimientoAPI.obtenerPorDireccion(token);
+
+                if (response.success === false) {
+                    throw new Error(response.message || 'Error al obtener procedimientos');
+                }
+
+                renderProcedimientos(response.data || []);
+                configurarEventos();
             } catch (error) {
                 console.error('Error al cargar procedimientos:', error);
-                alert('Error al cargar los procedimientos');
+
+                if (error.message.includes('expirado') || error.message.includes('403')) {
+                    alert('Tu sesión ha expirado. Serás redirigido para iniciar sesión nuevamente.');
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                } else {
+                    showErrorState(error);
+                }
             }
         }
 
-        async function cargarSubprocesos() {
+        function showLoadingState() {
+            const gridView = document.getElementById('gridView');
+            gridView.innerHTML = `
+        <div class="col-span-full text-center py-8">
+            <i class="fas fa-spinner fa-spin text-blue-500 text-4xl mb-4"></i>
+            <p class="text-lg text-gray-700">Cargando procedimientos...</p>
+        </div>
+    `;
+        }
+
+        function showErrorState(error) {
+            const gridView = document.getElementById('gridView');
+            gridView.innerHTML = `
+        <div class="col-span-full text-center py-8">
+            <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+            <p class="text-lg text-gray-700">Error al cargar los procedimientos</p>
+            <p class="text-sm text-gray-500 mt-2">${error.message || 'Por favor intente más tarde'}</p>
+            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                Reintentar
+            </button>
+        </div>
+    `;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const token = localStorage.getItem('token');
-                const subprocesos = await ProcedimientoAPI.obtenerSubprocesos(token);
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                if (!userData?.direccionId) throw new Error('Usuario no tiene dirección asignada');
 
-                const select = document.getElementById('department');
-                select.innerHTML = '<option value="">Seleccionar SubProceso</option>';
-
-                subprocesos.forEach(sub => {
-                    const option = document.createElement('option');
-                    option.value = sub.SubprocesoID;
-                    option.textContent = sub.Nombre;
-                    select.appendChild(option);
+                const response = await fetch(`http://localhost:3000/api/procedimientos/por-direccion/${userData.direccionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
                 });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.message || 'Error al obtener procedimientos');
+
+                // Renderizar los procedimientos en tu HTML
+                renderProcedimientos(data.data);
+
             } catch (error) {
-                console.error('Error al cargar subprocesos:', error);
+                console.error('Error:', error);
+                alert(error.message);
             }
-        }
+        });
 
         function renderProcedimientos(procedimientos) {
-            const gridView = document.getElementById('gridView');
-            const listView = document.getElementById('listView').querySelector('tbody');
+            const container = document.getElementById('procedimientos-container');
 
-            // Limpiar vistas
-            gridView.innerHTML = '';
-            listView.innerHTML = '';
-
-            if (procedimientos.length === 0) {
-                gridView.innerHTML = '<p class="text-gray-500 py-4">No hay procedimientos registrados</p>';
-                return;
-            }
-
-            // Renderizar vista de cuadrícula
             procedimientos.forEach(proc => {
-                const card = document.createElement('div');
-                card.className = 'folder-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md cursor-pointer';
-                card.innerHTML = `
-                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                    <div class="flex items-center space-x-3 min-w-0">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-folder"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="font-medium text-gray-800 truncate">${proc.Titulo}</h3>
-                            <p class="text-xs text-gray-500 truncate">${proc.Descripcion || 'Sin descripción'}</p>
-                        </div>
-                    </div>
-                    <button class="text-gray-400 hover:text-gray-600 context-menu-btn" data-id="${proc.ProcedimientoID}">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-                <div class="p-4">
-                    <div class="flex items-center text-sm text-gray-500">
-                        <i class="fas fa-user-edit mr-2"></i>
-                        <span>${proc.ResponsableNombre || 'Usuario desconocido'}</span>
-                    </div>
-                    <div class="mt-2 text-xs text-gray-400">
-                        Última modificación: ${new Date(proc.UltimaModificacion).toLocaleDateString()}
-                    </div>
-                </div>
-            `;
-
-                // Context menu para la tarjeta
-                const menu = document.createElement('div');
-                menu.id = `proc-${proc.ProcedimientoID}-menu`;
-                menu.className = 'context-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 hidden';
-                menu.innerHTML = `
-                <a onclick="editarProcedimiento(${proc.ProcedimientoID})" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                    <i class="fas fa-edit mr-2"></i>Editar
-                </a>
-                <div class="border-t border-gray-200"></div>
-                <a onclick="confirmarEliminarProcedimiento(${proc.ProcedimientoID})" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 cursor-pointer">
-                    <i class="fas fa-trash mr-2"></i>Eliminar
-                </a>
-            `;
-                card.appendChild(menu);
-
-                // Evento para abrir el procedimiento
-                card.addEventListener('click', (e) => {
-                    if (!e.target.closest('.context-menu-btn')) {
-                        window.location.href = `Procedimiento.html?id=${proc.ProcedimientoID}`;
-                    }
-                });
-
-                gridView.appendChild(card);
-
-                // Renderizar vista de lista
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 transition-colors';
-                row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center text-blue-600">
-                            <i class="fas fa-folder"></i>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900">${proc.Titulo}</div>
-                            <div class="text-sm text-gray-500">${proc.Descripcion || 'Sin descripción'}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${proc.DocumentosCount || 0} documentos
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${new Date(proc.UltimaModificacion).toLocaleDateString()}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${proc.ResponsableNombre || 'Usuario desconocido'}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex space-x-2">
-                        <button onclick="editarProcedimiento(${proc.ProcedimientoID})" class="text-yellow-600 hover:text-yellow-900">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="confirmarEliminarProcedimiento(${proc.ProcedimientoID})" class="text-red-600 hover:text-red-900">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-                listView.appendChild(row);
+                container.innerHTML += `
+      <div class="document-card border rounded-lg p-4 mb-4">
+        <h3 class="font-bold">${proc.Titulo}</h3>
+        <p class="text-gray-600">${proc.Descripcion}</p>
+        <div class="mt-2 text-sm text-blue-600">
+          Responsable: ${proc.ResponsableNombre}
+        </div>
+      </div>
+    `;
             });
         }
-
-        function configurarEventos() {
-            // Document View Toggle
-            const viewToggleButtons = document.querySelectorAll('.document-view-toggle');
-            const gridView = document.getElementById('gridView');
-            const listView = document.getElementById('listView');
-
-            viewToggleButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    viewToggleButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-
-                    if (button.dataset.view === 'grid') {
-                        gridView.classList.remove('hidden');
-                        listView.classList.add('hidden');
-                    } else {
-                        gridView.classList.add('hidden');
-                        listView.classList.remove('hidden');
-                    }
-                });
-            });
-
-            // Document Tabs
-            const documentTabs = document.querySelectorAll('.document-tab');
-            documentTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    documentTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    // Aquí podrías filtrar los procedimientos por categoría
-                });
-            });
-
-            // Context Menu Handling
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.context-menu-btn')) {
-                    document.querySelectorAll('.context-menu').forEach(menu => {
-                        menu.classList.add('hidden');
-                    });
-                }
-            });
-
-            document.querySelectorAll('.context-menu-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const menuId = `proc-${button.dataset.id}-menu`;
-                    const menu = document.getElementById(menuId);
-
-                    // Cerrar otros menús
-                    document.querySelectorAll('.context-menu').forEach(m => {
-                        if (m.id !== menuId) {
-                            m.classList.add('hidden');
-                        }
-                    });
-
-                    // Mostrar/ocultar menú
-                    menu.classList.toggle('hidden');
-
-                    // Posicionar menú
-                    const rect = button.getBoundingClientRect();
-                    menu.style.top = `${rect.bottom}px`;
-                    menu.style.left = `${rect.left - menu.offsetWidth + button.offsetWidth}px`;
-                });
-            });
-        }
-
-        // Funciones para los modales
-        function openUploadModal() {
-            document.getElementById('uploadModal').classList.remove('hidden');
-            // Establecer fecha actual
-            const today = new Date();
-            document.getElementById('creationDate').value = today.toLocaleDateString('es-MX');
-            selectedItems = []; // Resetear elementos compartidos
-            renderSelectedItems();
-        }
-
-        function closeUploadModal() {
-            document.getElementById('uploadModal').classList.add('hidden');
-            document.getElementById('uploadForm').reset();
-        }
-
-        async function submitUploadForm() {
-            const form = document.getElementById('uploadForm');
-            const formData = {
-                Titulo: form.title.value,
-                Descripcion: form.description.value,
-                SubprocesoID: form.department.value,
-                DireccionesCompartidas: selectedItems.map(item => item.id)
-            };
-
-            try {
-                const token = localStorage.getItem('token');
-                await ProcedimientoAPI.crearProcedimiento(token, formData);
-
-                showSuccessNotification('Procedimiento creado correctamente');
-                closeUploadModal();
-                await cargarProcedimientos();
-            } catch (error) {
-                console.error('Error al crear procedimiento:', error);
-                alert('Error al crear el procedimiento');
-            }
-        }
-
-        function editarProcedimiento(id) {
-            procedimientoActualId = id;
-            // Aquí deberías cargar los datos del procedimiento para editarlos
-        }
-
-        function confirmarEliminarProcedimiento(id) {
-            procedimientoActualId = id;
-            openDeleteModal();
-        }
-
-        async function eliminarProcedimiento() {
-            try {
-                const token = localStorage.getItem('token');
-                await ProcedimientoAPI.eliminarProcedimiento(token, procedimientoActualId);
-
-                showSuccessNotification('Procedimiento eliminado correctamente');
-                closeDeleteModal();
-                await cargarProcedimientos();
-            } catch (error) {
-                console.error('Error al eliminar procedimiento:', error);
-                alert('Error al eliminar el procedimiento');
-            }
-        }
-
-        // Funciones para compartir
-        function renderSelectedItems() {
-            const container = document.getElementById('shareSelectedContainer');
-            container.innerHTML = '';
-
-            if (selectedItems.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-sm">Aún no has compartido con nadie</p>';
-                return;
-            }
-
-            selectedItems.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'share-selected-item';
-                div.innerHTML = `
-                <span>${item.name}</span>
-                <button type="button" onclick="removeSelectedItem('${item.id}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-                container.appendChild(div);
-            });
-        }
-
-        function removeSelectedItem(id) {
-            selectedItems = selectedItems.filter(item => item.id !== id);
-            renderSelectedItems();
-        }
-
-        // Notificaciones
-        function showSuccessNotification(message) {
-            const notification = document.getElementById('successNotification');
-            notification.querySelector('span').textContent = message;
-            notification.classList.remove('hidden');
-
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
-
-        function closeNotification() {
-            document.getElementById('successNotification').classList.add('hidden');
-        }
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
+
 </html>

@@ -151,52 +151,39 @@
     </div>
 
     <script>
-        const loginForm = document.getElementById('loginForm');
-
-        loginForm.addEventListener('submit', async function (e) {
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-
-            const email = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!email || !password) {
-                alert('Por favor complete todos los campos');
-                return;
-            }
 
             try {
                 const response = await fetch('http://localhost:3000/api/auth/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('username').value.trim(),
+                        password: document.getElementById('password').value.trim()
+                    })
                 });
 
                 const data = await response.json();
 
-                if (!response.ok) {
-                    alert(data.message || 'Credenciales inválidas');
-                    return;
-                }
+                if (!response.ok) throw new Error(data.message || 'Error en credenciales');
 
-                // Guardar en localStorage
+                // Almacenar datos críticos
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('usuario', JSON.stringify(data.user));
+                localStorage.setItem('userData', JSON.stringify({
+                    id: data.user.id,
+                    nombre: data.user.nombre,
+                    rol: data.user.rol,
+                    direccionId: data.user.direccionId, // Asegúrate que viene como número
+                    direccionNombre: data.user.direccionNombre
+                }));
 
-                // Redirección según el rol
-                const rol = data.user.rol;
+                // Redirección
+                window.location.href = 'Procedimientos.html';
 
-                if (rol === 'Director de Personal' || rol === 'Director General de Recursos Humanos') {
-                    window.location.href = 'Procedimientos.html';
-                } else if (rol === 'SAF' || rol === 'OUM') {
-                    window.location.href = 'Direcciones.html';
-                } else {
-                    alert('Rol no reconocido. Contacte al administrador.');
-                }
             } catch (error) {
-                console.error('Error de red:', error);
-                alert('No se pudo conectar al servidor');
+                console.error('Login error:', error);
+                alert(error.message);
             }
         });
     </script>

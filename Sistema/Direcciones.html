@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
@@ -59,14 +60,67 @@
         }
 
         .context-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            width: 180px;
+            background: white;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 50;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.2s ease;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
         }
 
         .context-menu.active {
             opacity: 1;
             visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: #374151;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .menu-item i {
+            margin-right: 0.5rem;
+            width: 1rem;
+            text-align: center;
+        }
+
+        .menu-item.delete {
+            color: #dc2626;
+        }
+
+        /* Mejoras para las tarjetas */
+        .department-card {
+            transition: all 0.2s ease;
+        }
+
+        .department-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mejoras para los selects */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
         }
     </style>
 </head>
@@ -93,7 +147,8 @@
                             </a>
                         </li>
                         <li class="mb-2">
-                            <a href="Direcciones.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                            <a href="Direcciones.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
                                 <i class="fa-regular fa-newspaper mr-3"></i>
                                 <span class="sidebar-text">Direcciones</span>
                             </a>
@@ -114,7 +169,7 @@
 
             <main class="p-6">
                 <!-- Department Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!--<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-lg shadow p-6 fade-in">
                         <div class="flex items-center justify-between">
                             <div>
@@ -159,7 +214,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>-->
 
                 <!-- Department Actions -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -177,7 +232,8 @@
                     <!-- Department Cards -->
 
 
-                    <a href="Procedimientos.html" class="department-card bg-white rounded-lg shadow overflow-hidden transition-all">
+                    <!--<a href="Procedimientos.html"
+                        class="department-card bg-white rounded-lg shadow overflow-hidden transition-all">
                         <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                             <div class="flex items-center space-x-3 min-w-0">
                                 <div
@@ -277,7 +333,7 @@
                                 Última Modificación: Feb 8, 2025
                             </div>
                         </div>
-                    </div>
+                    </div>-->
                 </div>
             </main>
         </div>
@@ -296,39 +352,64 @@
                     <div class="sm:flex sm:items-start">
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900">Crear nueva Dirección</h3>
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">Nueva Dirección
+                                </h3>
                                 <button onclick="closeNewDepartmentModal()" class="text-gray-400 hover:text-gray-500">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                             <div class="mt-2">
                                 <form id="departmentForm">
+                                    <input type="hidden" id="deptId">
                                     <div class="mb-4">
                                         <label for="deptName"
                                             class="block text-sm font-medium text-gray-700 mb-1">Nombre de Dirección
                                             *</label>
-                                        <input type="text" id="deptName" name="deptName"
+                                        <input type="text" id="deptName" name="nombre"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required>
                                     </div>
+
                                     <div class="mb-4">
-                                        <label for="deptHead" class="block text-sm font-medium text-gray-700 mb-1">Jefe
-                                            de la Dirección *</label>
-                                        <input type="text" id="deptName" name="deptName"
+                                        <label for="deptDescripcion"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                        <textarea id="deptDescripcion" name="descripcion"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required>
+                                            rows="3"></textarea>
                                     </div>
+
                                     <div class="mb-4">
-                                        <label for="deptStatus"
-                                            class="block text-sm font-medium text-gray-700 mb-1">Secretaría *</label>
-                                        <select id="deptStatus" name="deptStatus"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required>
-                                            <option value="">Selecciona la Secretaría</option>
-                                            <option value="active">Secretaría de Administración y Finanzas</option>
-                                            <option value="inactive">Secretaría Académica</option>
-                                            <option value="inactive">Secretaría de Desarrollo Institucional</option>
+                                        <label for="deptJefe" class="block text-sm font-medium text-gray-700 mb-1">Jefe
+                                            de Dirección</label>
+                                        <select id="deptJefe" name="jefeId"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">Seleccionar jefe...</option>
+                                            <!-- Las opciones se llenarán dinámicamente con JavaScript -->
                                         </select>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label for="deptSecretaria"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Secretaría *</label>
+                                        <select id="deptSecretaria" name="secretaria"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                            <option value="">Seleccionar secretaría...</option>
+                                            <option value="Secretaría de Administración y Finanzas">Secretaría de
+                                                Administración y Finanzas</option>
+                                            <option value="Secretaría Académica">Secretaría Académica</option>
+                                            <option value="Secretaría de Desarrollo Institucional">Secretaría de
+                                                Desarrollo Institucional</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="checkbox" id="deptActivo" name="activo"
+                                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                checked>
+                                            <span class="ml-2 text-sm text-gray-700">Dirección activa</span>
+                                        </label>
                                     </div>
                                 </form>
                             </div>
@@ -336,13 +417,13 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="submitDepartmentForm()"
+                    <button type="button" onclick="guardarDireccion()"
                         class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Crear Dirección
+                        Guardar
                     </button>
                     <button type="button" onclick="closeNewDepartmentModal()"
                         class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cancel
+                        Cancelar
                     </button>
                 </div>
             </div>
@@ -361,6 +442,173 @@
     </div>
 
     <script>
+        // Variables globales
+        let direcciones = [];
+        let userData = {};
+
+        // Al cargar el documento
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar autenticación
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Cargar datos del usuario
+            const storedUserData = localStorage.getItem('userData');
+            if (storedUserData) {
+                userData = JSON.parse(storedUserData);
+                console.log('Usuario autenticado:', userData);
+            }
+
+            try {
+                // Primero cargar los jefes disponibles
+                await cargarJefesDisponibles();
+
+                // Luego cargar las direcciones
+                await loadDirecciones();
+
+                // Configurar animaciones
+                const stats = document.querySelectorAll('.fade-in');
+                stats.forEach((stat, index) => {
+                    stat.style.animationDelay = `${index * 0.1}s`;
+                });
+            } catch (error) {
+                console.error('Error inicializando la página:', error);
+                showError('Error al cargar los datos iniciales');
+            }
+        });
+
+        // Cargar estadísticas
+        async function loadStats() {
+            try {
+                const response = await axios.get('http://localhost:3000/api/direcciones/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const stats = response.data;
+                document.querySelector('h3.text-blue-900').textContent = stats.totalDirecciones;
+                document.querySelector('h3.text-green-600').textContent = stats.direccionesActivas;
+                document.querySelector('h3.text-indigo-600').textContent = stats.totalJefes;
+                document.querySelector('h3.text-purple-600').textContent = stats.totalProcedimientos;
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                showError('Error al cargar estadísticas');
+            }
+        }
+
+        // Cargar lista de direcciones
+        async function loadDirecciones() {
+            try {
+                const response = await axios.get('http://localhost:3000/api/direcciones', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                direcciones = response.data;
+                await renderDirecciones(); // Añadir await para asegurar la secuencia
+            } catch (error) {
+                console.error('Error al cargar direcciones:', error);
+                showError('Error al cargar las direcciones');
+                // Detener cualquier proceso adicional si hay un error
+                return Promise.reject(error);
+            }
+        }
+
+        // Renderizar direcciones en el grid
+        function renderDirecciones() {
+            const grid = document.querySelector('.department-grid');
+            grid.innerHTML = '';
+
+            direcciones.forEach(direccion => {
+                const card = document.createElement('div');
+                card.className = 'department-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md';
+
+                card.innerHTML = `
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="font-medium text-gray-800 truncate">${direccion.Nombre}</h3>
+                        <p class="text-xs text-gray-500 truncate">${direccion.miembros || '0'} Miembros</p>
+                    </div>
+                </div>
+                <div class="relative">
+                    <button class="context-menu-btn p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full" 
+                            data-id="${direccion.DireccionID}"
+                            aria-label="Menú de opciones">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    
+                    <div id="menu-${direccion.DireccionID}" class="context-menu">
+                        <div class="menu-item" onclick="editarDireccion(${direccion.DireccionID})">
+                            <i class="fas fa-edit mr-2"></i>
+                            <span>Editar</span>
+                        </div>
+                        <div class="menu-item delete" onclick="confirmarEliminarDireccion(${direccion.DireccionID})">
+                            <i class="fas fa-trash mr-2"></i>
+                            <span>Eliminar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="px-2 py-1 text-xs rounded-full ${direccion.Activo ? 'badge-active' : 'badge-inactive'} text-white">
+                        ${direccion.Activo ? 'Activa' : 'Inactiva'}
+                    </span>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-file-alt mr-1"></i>
+                        <span>${direccion.totalProcedimientos || '0'} Procedimientos</span>
+                    </div>
+                </div>
+                <div class="flex items-center text-sm text-gray-500">
+                    <i class="fas fa-user-tie mr-2"></i>
+                    <span class="truncate">${direccion.JefeNombre || 'Sin jefe asignado'}</span>
+                </div>
+                <div class="mt-2 text-xs text-gray-400">
+                    ${direccion.UltimaModificacion ? `Última modificación: ${formatDate(direccion.UltimaModificacion)}` : ''}
+                </div>
+            </div>
+        `;
+
+                grid.appendChild(card);
+            });
+
+            // Configurar eventos para menús contextuales
+            setupContextMenus();
+        }
+
+        // Funciones auxiliares
+        function getRandomColorClass() {
+            const colors = ['bg-green-100 text-green-600', 'bg-yellow-100 text-yellow-600',
+                'bg-red-100 text-red-600', 'bg-blue-100 text-blue-600'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function getRandomIcon() {
+            const icons = ['fa-flask', 'fa-user-graduate', 'fa-users', 'fa-building', 'fa-chart-line'];
+            return icons[Math.floor(Math.random() * icons.length)];
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function showError(message) {
+            alert(message); // En una aplicación real, usarías un sistema de notificaciones más elegante
+        }
+
+        // ... (mantén tus funciones existentes para el modal y notificaciones) ...
+
         // Context Menu Handling
         const contextMenuButtons = document.querySelectorAll('.context-menu-btn');
 
@@ -394,50 +642,123 @@
             });
         });
 
-        // Department Modal Functions
+        // Función para abrir el modal
         function openNewDepartmentModal() {
+            resetDepartmentForm();
             document.getElementById('newDepartmentModal').classList.remove('hidden');
+            document.getElementById('modalTitle').textContent = 'Nueva Dirección';
+            document.getElementById('deptId').value = '';
         }
 
+        // Función para cerrar el modal
         function closeNewDepartmentModal() {
             document.getElementById('newDepartmentModal').classList.add('hidden');
-            resetDepartmentForm();
         }
 
+        // Función para resetear el formulario
         function resetDepartmentForm() {
             document.getElementById('departmentForm').reset();
         }
 
-        // Form Submission
-        function submitDepartmentForm() {
-            const form = document.getElementById('departmentForm');
-            const requiredFields = form.querySelectorAll('[required]');
-            let isValid = true;
+        async function editarDireccion(id) {
+            try {
+                const response = await axios.get(`http://localhost:3000/api/direcciones/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
 
-            requiredFields.forEach(field => {
-                if (!field.value) {
-                    field.classList.add('border-red-500');
-                    isValid = false;
-                } else {
-                    field.classList.remove('border-red-500');
-                }
-            });
+                const direccion = response.data;
 
-            if (!isValid) {
-                alert('Please fill in all required fields');
+                // Llenar formulario
+                document.getElementById('deptId').value = direccion.DireccionID;
+                document.getElementById('deptName').value = direccion.Nombre;
+                document.getElementById('deptDescripcion').value = direccion.descripcion || '';
+                document.getElementById('deptJefe').value = direccion.JefeID || '';
+                document.getElementById('deptSecretaria').value = direccion.Secretaria;
+                document.getElementById('deptActivo').checked = direccion.Activo;
+
+                // Mostrar modal
+                document.getElementById('newDepartmentModal').classList.remove('hidden');
+                document.getElementById('modalTitle').textContent = 'Editar Dirección';
+            } catch (error) {
+                console.error('Error al cargar dirección:', error);
+                showError('Error al cargar dirección para editar');
+            }
+        }
+
+        // Función para confirmar eliminación
+        async function confirmarEliminarDireccion(id) {
+            const direccion = direcciones.find(d => d.DireccionID == id);
+
+            if (!confirm(`¿Estás seguro de eliminar la dirección "${direccion.Nombre}"?`)) {
                 return;
             }
 
-            // In a real app, you would submit the form to a server here
-            // For this demo, we'll just show a success message
-            closeNewDepartmentModal();
-            showSuccessNotification();
+            try {
+                await axios.delete(`http://localhost:3000/api/direcciones/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                showSuccessNotification('Dirección eliminada correctamente');
+                loadDirecciones();
+            } catch (error) {
+                console.error('Error al eliminar dirección:', error);
+                showError('Error al eliminar dirección');
+            }
+        }
+
+        // Función para guardar la dirección (actualizada según tu estructura de datos)
+        async function guardarDireccion() {
+            const form = document.getElementById('departmentForm');
+            const id = form.deptId.value;
+
+            const direccionData = {
+                nombre: form.deptName.value,
+                descripcion: form.deptDescripcion.value,
+                jefeId: form.deptJefe.value || null,
+                secretaria: form.deptSecretaria.value,
+                activo: form.deptActivo.checked
+            };
+
+            try {
+                if (id) {
+                    // Actualizar dirección existente
+                    await axios.put(`http://localhost:3000/api/direcciones/${id}`, direccionData, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    showSuccessNotification('Dirección actualizada correctamente');
+                } else {
+                    // Crear nueva dirección
+                    await axios.post('http://localhost:3000/api/direcciones', direccionData, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    showSuccessNotification('Dirección creada correctamente');
+                }
+
+                // Cerrar modal y actualizar lista
+                closeNewDepartmentModal();
+                loadDirecciones();
+            } catch (error) {
+                console.error('Error al guardar dirección:', error);
+                showError('Error al guardar dirección: ' + (error.response?.data?.message || error.message));
+            }
         }
 
         // Success Notification
-        function showSuccessNotification() {
+        function showSuccessNotification(message = 'Operación completada exitosamente') {
             const notification = document.getElementById('successNotification');
+            notification.querySelector('span').textContent = message;
             notification.classList.remove('hidden');
+
             setTimeout(() => {
                 notification.classList.add('hidden');
             }, 5000);
@@ -454,6 +775,211 @@
                 stat.style.animationDelay = `${index * 0.1}s`;
             });
         });
+
+        function setupContextMenus() {
+            // Primero, eliminar cualquier event listener previo
+            document.removeEventListener('click', handleDocumentClick);
+            document.querySelectorAll('.context-menu-btn').forEach(btn => {
+                btn.removeEventListener('click', handleContextMenuClick);
+            });
+
+            // Función para manejar clics en el documento
+            function handleDocumentClick(e) {
+                if (!e.target.closest('.context-menu') && !e.target.closest('.context-menu-btn')) {
+                    document.querySelectorAll('.context-menu').forEach(menu => {
+                        menu.classList.remove('active');
+                    });
+                }
+            }
+
+            // Función para manejar clics en los botones de menú contextual
+            function handleContextMenuClick(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const menuId = this.getAttribute('data-id');
+                const menu = document.getElementById(`menu-${menuId}`);
+
+                // Cerrar todos los demás menús
+                document.querySelectorAll('.context-menu').forEach(m => {
+                    if (m.id !== `menu-${menuId}`) {
+                        m.classList.remove('active');
+                    }
+                });
+
+                // Alternar el menú actual
+                if (menu) {
+                    menu.classList.toggle('active');
+
+                    // Posicionar el menú
+                    const rect = this.getBoundingClientRect();
+                    menu.style.top = `${rect.bottom + window.scrollY}px`;
+                    menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + this.offsetWidth}px`;
+                }
+            }
+
+            // Asignar event listeners
+            document.addEventListener('click', handleDocumentClick);
+            document.querySelectorAll('.context-menu-btn').forEach(btn => {
+                btn.addEventListener('click', handleContextMenuClick);
+            });
+        }
+
+        function showContextMenu(event, direccionId) {
+            // Crear menú contextual dinámico
+            const menu = document.createElement('div');
+            menu.className = 'context-menu absolute bg-white shadow-lg rounded-md py-1 z-50';
+            menu.style.top = `${event.clientY}px`;
+            menu.style.left = `${event.clientX}px`;
+
+            menu.innerHTML = `
+        <button onclick="editDireccion(${direccionId})" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-edit mr-2"></i> Editar
+        </button>
+        <button onclick="deleteDireccion(${direccionId})" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+            <i class="fas fa-trash mr-2"></i> Eliminar
+        </button>
+    `;
+
+            document.body.appendChild(menu);
+
+            // Cerrar menú al hacer clic en cualquier lugar
+            const closeMenu = () => {
+                document.body.removeChild(menu);
+                document.removeEventListener('click', closeMenu);
+            };
+
+            setTimeout(() => {
+                document.addEventListener('click', closeMenu);
+            }, 100);
+        }
+
+        async function editDireccion(id) {
+            try {
+                // Obtener datos de la dirección
+                const response = await axios.get(`http://localhost:3000/api/direcciones/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const direccion = response.data;
+
+                // Llenar formulario de edición (necesitarás crear un modal similar al de creación)
+                document.getElementById('editDeptName').value = direccion.Nombre;
+                document.getElementById('editDeptHead').value = direccion.JefeNombre || '';
+                document.getElementById('editDeptStatus').value = direccion.Secretaria;
+                document.getElementById('editDeptId').value = id;
+
+                // Mostrar modal de edición
+                document.getElementById('editDepartmentModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error al cargar dirección para editar:', error);
+                showError('Error al cargar dirección');
+            }
+        }
+
+        async function deleteDireccion(id) {
+            if (!confirm('¿Estás seguro de eliminar esta dirección?')) return;
+
+            try {
+                await axios.delete(`http://localhost:3000/api/direcciones/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                showSuccessNotification('Dirección eliminada exitosamente');
+                loadDirecciones();
+                //loadStats();
+            } catch (error) {
+                console.error('Error al eliminar dirección:', error);
+                showError('Error al eliminar dirección');
+            }
+        }
+
+        function closeEditDepartmentModal() {
+            document.getElementById('editDepartmentModal').classList.add('hidden');
+        }
+
+        async function submitEditDepartmentForm() {
+            const form = document.getElementById('editDepartmentForm');
+            const id = form.editDeptId.value;
+
+            const formData = {
+                nombre: form.editDeptName.value,
+                jefeId: null, // Deberías obtener este valor de un select con usuarios
+                secretaria: form.editDeptStatus.value
+            };
+
+            try {
+                await axios.put(`http://localhost:3000/api/direcciones/${id}`, formData, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                closeEditDepartmentModal();
+                showSuccessNotification('Dirección actualizada exitosamente');
+                loadDirecciones();
+            } catch (error) {
+                console.error('Error al actualizar dirección:', error);
+                showError('Error al actualizar dirección');
+            }
+        }
+
+        let jefesDisponibles = [];
+
+        // Función para cargar jefes disponibles
+        async function cargarJefesDisponibles() {
+            try {
+                const response = await axios.get('http://localhost:3000/api/usuarios', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                // Filtrar los roles que consideras "jefes" - Asegúrate que estos roles coincidan con tu backend
+                jefesDisponibles = response.data.filter(usuario =>
+                    usuario.Rol === 'Director General de Recursos Humanos' ||
+                    usuario.Rol === 'SAF' ||
+                    usuario.Rol === 'OUM'
+                );
+
+                console.log('Jefes disponibles:', jefesDisponibles); // Para depuración
+
+                // Llamar a la función que actualiza los selects
+                actualizarSelectJefes();
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                showError('Error al cargar la lista de jefes');
+            }
+        }
+
+        // Actualizar select de jefes en los modales
+        function actualizarSelectJefes() {
+            const selectJefeNuevo = document.getElementById('deptJefe');
+
+            // Limpiar opciones existentes
+            selectJefeNuevo.innerHTML = '<option value="">Seleccionar jefe...</option>';
+
+            // Verificar si hay jefes disponibles
+            if (!jefesDisponibles || jefesDisponibles.length === 0) {
+                console.warn('No hay jefes disponibles para mostrar');
+                return;
+            }
+
+            // Agregar jefes disponibles
+            jefesDisponibles.forEach(jefe => {
+                const option = document.createElement('option');
+                option.value = jefe.UsuarioID;
+                option.textContent = `${jefe.Nombre} (${jefe.Rol})`; // Muestra nombre y rol para referencia
+                selectJefeNuevo.appendChild(option);
+            });
+
+            console.log('Select de jefes actualizado'); // Para depuración
+        }
     </script>
 </body>
 
