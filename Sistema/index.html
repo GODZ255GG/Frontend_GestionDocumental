@@ -154,36 +154,46 @@
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                alert('Por favor ingrese usuario y contraseña');
+                return;
+            }
+
             try {
                 const response = await fetch('http://localhost:3000/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
-                        email: document.getElementById('username').value.trim(),
-                        password: document.getElementById('password').value.trim()
+                        email: username,
+                        password: password
                     })
                 });
 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error en la autenticación');
+                }
+
                 const data = await response.json();
 
-                if (!response.ok) throw new Error(data.message || 'Error en credenciales');
+                if (!data.token) {
+                    throw new Error('No se recibió token de autenticación');
+                }
 
-                // Almacenar datos críticos
+                // Almacenar datos
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('userData', JSON.stringify({
-                    id: data.user.id,
-                    nombre: data.user.nombre,
-                    rol: data.user.rol,
-                    direccionId: data.user.direccionId, // Asegúrate que viene como número
-                    direccionNombre: data.user.direccionNombre
-                }));
+                localStorage.setItem('userData', JSON.stringify(data.user));
 
                 // Redirección
                 window.location.href = 'Procedimientos.html';
-
             } catch (error) {
-                console.error('Login error:', error);
-                alert(error.message);
+                console.error('Error en login:', error);
+                alert(`Error: ${error.message}`);
             }
         });
     </script>

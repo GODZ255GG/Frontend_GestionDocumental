@@ -24,17 +24,39 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
-        .department-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        .department-card {
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .department-card h3 {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        .department-grid {
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         }
 
         .badge-active {
             background-color: #10b981;
+            padding: 0.25rem 0.5rem;
         }
 
         .badge-inactive {
             background-color: #64748b;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Estilos para los botones de acción */
+        .department-card button {
+            transition: all 0.2s ease;
+        }
+
+        .department-card button:hover {
+            transform: scale(1.1);
         }
 
         @keyframes fadeIn {
@@ -59,58 +81,43 @@
             gap: 1.5rem;
         }
 
-        .context-menu {
-            position: absolute;
-            right: 0;
-            top: 100%;
-            width: 180px;
-            background: white;
-            border-radius: 0.375rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            z-index: 50;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+        /* Notificación de error */
+        #errorNotification {
+            transition: all 0.3s ease;
+            z-index: 1000;
         }
 
-        .context-menu.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
+        /* Animación para mostrar/ocultar */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .menu-item {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            color: #374151;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
 
-        .menu-item:hover {
-            background-color: #f3f4f6;
+        #errorNotification {
+            animation: slideIn 0.3s forwards;
         }
 
-        .menu-item i {
-            margin-right: 0.5rem;
-            width: 1rem;
-            text-align: center;
-        }
-
-        .menu-item.delete {
-            color: #dc2626;
-        }
-
-        /* Mejoras para las tarjetas */
-        .department-card {
-            transition: all 0.2s ease;
-        }
-
-        .department-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        #errorNotification.hiding {
+            animation: slideOut 0.3s forwards;
         }
 
         /* Mejoras para los selects */
@@ -446,34 +453,21 @@
         let direcciones = [];
         let userData = {};
 
-        // Al cargar el documento
         document.addEventListener('DOMContentLoaded', async () => {
-            // Verificar autenticación
+            // Verificar autenticación y roles
             const token = localStorage.getItem('token');
-            if (!token) {
+            const storedUserData = localStorage.getItem('userData');
+
+            if (!token || !storedUserData) {
                 window.location.href = 'index.html';
                 return;
             }
 
-            // Cargar datos del usuario
-            const storedUserData = localStorage.getItem('userData');
-            if (storedUserData) {
-                userData = JSON.parse(storedUserData);
-                console.log('Usuario autenticado:', userData);
-            }
+            userData = JSON.parse(storedUserData);
 
             try {
-                // Primero cargar los jefes disponibles
                 await cargarJefesDisponibles();
-
-                // Luego cargar las direcciones
                 await loadDirecciones();
-
-                // Configurar animaciones
-                const stats = document.querySelectorAll('.fade-in');
-                stats.forEach((stat, index) => {
-                    stat.style.animationDelay = `${index * 0.1}s`;
-                });
             } catch (error) {
                 console.error('Error inicializando la página:', error);
                 showError('Error al cargar los datos iniciales');
@@ -483,7 +477,7 @@
         // Cargar estadísticas
         async function loadStats() {
             try {
-                const response = await axios.get('http://localhost:3000/api/direcciones/stats', {
+                const response = await axios.get('http://localhost:3000/api/departments/stats', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -500,22 +494,26 @@
             }
         }
 
-        // Cargar lista de direcciones
         async function loadDirecciones() {
             try {
-                const response = await axios.get('http://localhost:3000/api/direcciones', {
+                const response = await axios.get('http://localhost:3000/api/departments', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
                 direcciones = response.data;
-                await renderDirecciones(); // Añadir await para asegurar la secuencia
+                await renderDirecciones();
             } catch (error) {
                 console.error('Error al cargar direcciones:', error);
-                showError('Error al cargar las direcciones');
-                // Detener cualquier proceso adicional si hay un error
-                return Promise.reject(error);
+                if (error.response?.status === 401) {
+                    // Token expirado o inválido
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userData');
+                    window.location.href = 'index.html';
+                } else {
+                    showError('Error al cargar las direcciones');
+                }
             }
         }
 
@@ -524,65 +522,62 @@
             const grid = document.querySelector('.department-grid');
             grid.innerHTML = '';
 
+            // Ajustamos el grid para tarjetas más flexibles
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+            grid.style.gap = '1.5rem';
+
             direcciones.forEach(direccion => {
                 const card = document.createElement('div');
-                card.className = 'department-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md';
+                card.className = 'department-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md flex flex-col';
 
                 card.innerHTML = `
-            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0">
+            <div class="p-4 border-b border-gray-200 flex items-start justify-between">
+                <div class="flex items-start space-x-3 flex-1 min-w-0">
+                    <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0 mt-1">
                         <i class="fas fa-folder"></i>
                     </div>
-                    <div class="min-w-0">
-                        <h3 class="font-medium text-gray-800 truncate">${direccion.Nombre}</h3>
-                        <p class="text-xs text-gray-500 truncate">${direccion.miembros || '0'} Miembros</p>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-medium text-gray-800 break-words">${direccion.Name}</h3>
+                        <p class="text-xs text-gray-500 mt-1">${direccion.memberCount || '0'} Miembros</p>
                     </div>
                 </div>
-                <div class="relative">
-                    <button class="context-menu-btn p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full" 
-                            data-id="${direccion.DireccionID}"
-                            aria-label="Menú de opciones">
-                        <i class="fas fa-ellipsis-v"></i>
+                
+                <!-- Columna de botones -->
+                <div class="flex flex-col space-y-2 ml-2">
+                    <button onclick="editarDireccion(${direccion.DepartmentID})" 
+                            class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full"
+                            title="Editar dirección">
+                        <i class="fas fa-edit"></i>
                     </button>
-                    
-                    <div id="menu-${direccion.DireccionID}" class="context-menu">
-                        <div class="menu-item" onclick="editarDireccion(${direccion.DireccionID})">
-                            <i class="fas fa-edit mr-2"></i>
-                            <span>Editar</span>
-                        </div>
-                        <div class="menu-item delete" onclick="confirmarEliminarDireccion(${direccion.DireccionID})">
-                            <i class="fas fa-trash mr-2"></i>
-                            <span>Eliminar</span>
-                        </div>
-                    </div>
+                    <button onclick="confirmarEliminarDireccion(${direccion.DepartmentID})" 
+                            class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full"
+                            title="Eliminar dirección">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
-            <div class="p-4">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="px-2 py-1 text-xs rounded-full ${direccion.Activo ? 'badge-active' : 'badge-inactive'} text-white">
-                        ${direccion.Activo ? 'Activa' : 'Inactiva'}
+            <div class="p-4 flex-1">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="px-2 py-1 text-xs rounded-full ${direccion.IsActive ? 'badge-active' : 'badge-inactive'} text-white">
+                        ${direccion.IsActive ? 'Activa' : 'Inactiva'}
                     </span>
                     <div class="text-sm text-gray-500">
                         <i class="fas fa-file-alt mr-1"></i>
-                        <span>${direccion.totalProcedimientos || '0'} Procedimientos</span>
+                        <span>${direccion.procedureCount || '0'} Procedimientos</span>
                     </div>
                 </div>
-                <div class="flex items-center text-sm text-gray-500">
+                <div class="flex items-center text-sm text-gray-500 mb-2">
                     <i class="fas fa-user-tie mr-2"></i>
-                    <span class="truncate">${direccion.JefeNombre || 'Sin jefe asignado'}</span>
+                    <span class="break-words">${direccion.HeadName || 'Sin jefe asignado'}</span>
                 </div>
-                <div class="mt-2 text-xs text-gray-400">
-                    ${direccion.UltimaModificacion ? `Última modificación: ${formatDate(direccion.UltimaModificacion)}` : ''}
+                <div class="text-xs text-gray-400 mt-auto">
+                    ${direccion.CreatedAt ? `Última modificación: ${formatDate(direccion.CreatedAt)}` : ''}
                 </div>
             </div>
         `;
 
                 grid.appendChild(card);
             });
-
-            // Configurar eventos para menús contextuales
-            setupContextMenus();
         }
 
         // Funciones auxiliares
@@ -604,36 +599,31 @@
         }
 
         function showError(message) {
-            alert(message); // En una aplicación real, usarías un sistema de notificaciones más elegante
+            // Crea o reutiliza un elemento de notificación de error
+            let errorNotification = document.getElementById('errorNotification');
+
+            if (!errorNotification) {
+                errorNotification = document.createElement('div');
+                errorNotification.id = 'errorNotification';
+                errorNotification.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center max-w-md';
+                errorNotification.innerHTML = `
+            <i class="fas fa-exclamation-circle mr-3"></i>
+            <span class="flex-1"></span>
+            <button onclick="this.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+                document.body.appendChild(errorNotification);
+            }
+
+            errorNotification.querySelector('span').textContent = message;
+            errorNotification.classList.remove('hidden');
+
+            // Eliminar la notificación después de 5 segundos
+            setTimeout(() => {
+                errorNotification.remove();
+            }, 5000);
         }
-
-        // ... (mantén tus funciones existentes para el modal y notificaciones) ...
-
-        // Context Menu Handling
-        const contextMenuButtons = document.querySelectorAll('.context-menu-btn');
-
-        contextMenuButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const menuId = button.dataset.id + '-menu';
-                const menu = document.getElementById(menuId);
-
-                // Close all other menus first
-                document.querySelectorAll('.context-menu').forEach(m => {
-                    if (m.id !== menuId) {
-                        m.classList.remove('active');
-                    }
-                });
-
-                // Toggle the clicked menu
-                menu.classList.toggle('active');
-
-                // Position the menu
-                const rect = button.getBoundingClientRect();
-                menu.style.top = `${rect.bottom}px`;
-                menu.style.left = `${rect.left - menu.offsetWidth + button.offsetWidth}px`;
-            });
-        });
 
         // Close menus when clicking elsewhere
         document.addEventListener('click', () => {
@@ -662,7 +652,7 @@
 
         async function editarDireccion(id) {
             try {
-                const response = await axios.get(`http://localhost:3000/api/direcciones/${id}`, {
+                const response = await axios.get(`http://localhost:3000/api/departments/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -671,12 +661,34 @@
                 const direccion = response.data;
 
                 // Llenar formulario
-                document.getElementById('deptId').value = direccion.DireccionID;
-                document.getElementById('deptName').value = direccion.Nombre;
-                document.getElementById('deptDescripcion').value = direccion.descripcion || '';
-                document.getElementById('deptJefe').value = direccion.JefeID || '';
-                document.getElementById('deptSecretaria').value = direccion.Secretaria;
-                document.getElementById('deptActivo').checked = direccion.Activo;
+                document.getElementById('deptId').value = direccion.DepartmentID;
+                document.getElementById('deptName').value = direccion.Name;
+                document.getElementById('deptDescripcion').value = direccion.Description || '';
+                document.getElementById('deptSecretaria').value = direccion.Secretariat;
+                document.getElementById('deptActivo').checked = direccion.IsActive;
+
+                // Primero cargar todos los jefes disponibles
+                await cargarJefesDisponibles(direccion.DepartmentID);
+
+                // Luego establecer el jefe actual si existe
+                const selectJefe = document.getElementById('deptJefe');
+                if (direccion.HeadID) {
+                    // Verificar si el jefe actual está en la lista de disponibles
+                    const jefeActual = todosLosUsuarios.find(u => u.UserID === direccion.HeadID);
+                    if (jefeActual) {
+                        // Si el jefe actual no está en las opciones, lo agregamos
+                        const optionExists = Array.from(selectJefe.options).some(opt => opt.value === direccion.HeadID);
+                        if (!optionExists) {
+                            const option = document.createElement('option');
+                            option.value = direccion.HeadID;
+                            option.textContent = `${jefeActual.Name} (${jefeActual.Role})`;
+                            selectJefe.appendChild(option);
+                        }
+                        selectJefe.value = direccion.HeadID;
+                    }
+                } else {
+                    selectJefe.value = '';
+                }
 
                 // Mostrar modal
                 document.getElementById('newDepartmentModal').classList.remove('hidden');
@@ -687,46 +699,83 @@
             }
         }
 
-        // Función para confirmar eliminación
         async function confirmarEliminarDireccion(id) {
-            const direccion = direcciones.find(d => d.DireccionID == id);
+            const direccion = direcciones.find(d => d.DepartmentID == id);
 
-            if (!confirm(`¿Estás seguro de eliminar la dirección "${direccion.Nombre}"?`)) {
+            if (!confirm(`¿Estás seguro de eliminar la dirección "${direccion.Name}"?`)) {
                 return;
             }
 
             try {
-                await axios.delete(`http://localhost:3000/api/direcciones/${id}`, {
+                await axios.delete(`http://localhost:3000/api/departments/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
                 showSuccessNotification('Dirección eliminada correctamente');
-                loadDirecciones();
+                await loadDirecciones();
             } catch (error) {
                 console.error('Error al eliminar dirección:', error);
                 showError('Error al eliminar dirección');
             }
         }
 
-        // Función para guardar la dirección (actualizada según tu estructura de datos)
         async function guardarDireccion() {
             const form = document.getElementById('departmentForm');
             const id = form.deptId.value;
 
-            const direccionData = {
-                nombre: form.deptName.value,
-                descripcion: form.deptDescripcion.value,
-                jefeId: form.deptJefe.value || null,
-                secretaria: form.deptSecretaria.value,
-                activo: form.deptActivo.checked
+            // Validación básica del formulario
+            if (!form.deptName.value.trim()) {
+                showError('El nombre de la dirección es requerido');
+                return;
+            }
+
+            const departmentData = {
+                name: form.deptName.value.trim(),
+                description: form.deptDescripcion.value.trim(),
+                headId: form.deptJefe.value || null, // Permitir null si no hay jefe seleccionado
+                secretariat: form.deptSecretaria.value,
+                isActive: form.deptActivo.checked
             };
 
             try {
                 if (id) {
-                    // Actualizar dirección existente
-                    await axios.put(`http://localhost:3000/api/direcciones/${id}`, direccionData, {
+                    // Para edición: primero obtenemos los datos actuales
+                    const currentDeptResponse = await axios.get(`http://localhost:3000/api/departments/${id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    const currentDept = currentDeptResponse.data;
+
+                    // Si no se seleccionó un jefe pero había uno antes, mantener el actual
+                    if (!departmentData.headId && currentDept.HeadID) {
+                        departmentData.headId = currentDept.HeadID;
+                    }
+
+                    // Validar si el jefe seleccionado es diferente al actual
+                    if (departmentData.headId && currentDept.HeadID !== departmentData.headId) {
+                        // Verificar que el nuevo jefe no sea jefe en otra dirección
+                        const jefesResponse = await axios.get('http://localhost:3000/api/departments', {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+
+                        const jefeEnOtraDireccion = jefesResponse.data.some(dept =>
+                            dept.HeadID == departmentData.headId && dept.DepartmentID != id
+                        );
+
+                        if (jefeEnOtraDireccion) {
+                            showError('El usuario seleccionado ya es jefe de otra dirección');
+                            return;
+                        }
+                    }
+
+                    // Realizar la actualización
+                    await axios.put(`http://localhost:3000/api/departments/${id}`, departmentData, {
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('token')}`,
                             'Content-Type': 'application/json'
@@ -734,8 +783,26 @@
                     });
                     showSuccessNotification('Dirección actualizada correctamente');
                 } else {
-                    // Crear nueva dirección
-                    await axios.post('http://localhost:3000/api/direcciones', direccionData, {
+                    // Para creación nueva
+                    if (departmentData.headId) {
+                        // Verificar que el jefe no esté asignado a otra dirección
+                        const jefesResponse = await axios.get('http://localhost:3000/api/departments', {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+
+                        const jefeEnOtraDireccion = jefesResponse.data.some(dept =>
+                            dept.HeadID == departmentData.headId
+                        );
+
+                        if (jefeEnOtraDireccion) {
+                            showError('El usuario seleccionado ya es jefe de otra dirección');
+                            return;
+                        }
+                    }
+
+                    await axios.post('http://localhost:3000/api/departments', departmentData, {
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('token')}`,
                             'Content-Type': 'application/json'
@@ -744,12 +811,19 @@
                     showSuccessNotification('Dirección creada correctamente');
                 }
 
-                // Cerrar modal y actualizar lista
                 closeNewDepartmentModal();
-                loadDirecciones();
+                await loadDirecciones();
             } catch (error) {
-                console.error('Error al guardar dirección:', error);
-                showError('Error al guardar dirección: ' + (error.response?.data?.message || error.message));
+                console.error('Error al guardar dirección:', error.response?.data || error);
+
+                let errorMessage = 'Error al guardar dirección';
+                if (error.response?.data?.message) {
+                    errorMessage += ': ' + error.response.data.message;
+                } else if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+
+                showError(errorMessage);
             }
         }
 
@@ -777,51 +851,30 @@
         });
 
         function setupContextMenus() {
-            // Primero, eliminar cualquier event listener previo
-            document.removeEventListener('click', handleDocumentClick);
             document.querySelectorAll('.context-menu-btn').forEach(btn => {
-                btn.removeEventListener('click', handleContextMenuClick);
-            });
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-            // Función para manejar clics en el documento
-            function handleDocumentClick(e) {
-                if (!e.target.closest('.context-menu') && !e.target.closest('.context-menu-btn')) {
+                    // Cerrar todos los demás menús
                     document.querySelectorAll('.context-menu').forEach(menu => {
-                        menu.classList.remove('active');
+                        menu.classList.add('hidden');
                     });
-                }
-            }
 
-            // Función para manejar clics en los botones de menú contextual
-            function handleContextMenuClick(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const menuId = this.getAttribute('data-id');
-                const menu = document.getElementById(`menu-${menuId}`);
-
-                // Cerrar todos los demás menús
-                document.querySelectorAll('.context-menu').forEach(m => {
-                    if (m.id !== `menu-${menuId}`) {
-                        m.classList.remove('active');
+                    // Mostrar el menú correspondiente a este botón
+                    const deptId = this.getAttribute('data-id');
+                    const menu = document.getElementById(`menu-${deptId}`);
+                    if (menu) {
+                        menu.classList.toggle('hidden');
                     }
                 });
+            });
 
-                // Alternar el menú actual
-                if (menu) {
-                    menu.classList.toggle('active');
-
-                    // Posicionar el menú
-                    const rect = this.getBoundingClientRect();
-                    menu.style.top = `${rect.bottom + window.scrollY}px`;
-                    menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + this.offsetWidth}px`;
-                }
-            }
-
-            // Asignar event listeners
-            document.addEventListener('click', handleDocumentClick);
-            document.querySelectorAll('.context-menu-btn').forEach(btn => {
-                btn.addEventListener('click', handleContextMenuClick);
+            // Cerrar menús al hacer clic en cualquier parte
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.context-menu').forEach(menu => {
+                    menu.classList.add('hidden');
+                });
             });
         }
 
@@ -854,10 +907,34 @@
             }, 100);
         }
 
+        function handleContextMenuClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Cerrar todos los menús primero
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+
+            // Mostrar el menú actual
+            const deptId = this.getAttribute('data-id');
+            const menu = document.getElementById(`menu-${deptId}`);
+
+            if (menu) {
+                menu.classList.remove('hidden');
+
+                // Posicionar el menú
+                const rect = this.getBoundingClientRect();
+                menu.style.position = 'absolute';
+                menu.style.top = `${rect.bottom}px`;
+                menu.style.right = `${window.innerWidth - rect.right}px`;
+            }
+        }
+
         async function editDireccion(id) {
             try {
                 // Obtener datos de la dirección
-                const response = await axios.get(`http://localhost:3000/api/direcciones/${id}`, {
+                const response = await axios.get(`http://localhost:3000/api/departments/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -883,7 +960,7 @@
             if (!confirm('¿Estás seguro de eliminar esta dirección?')) return;
 
             try {
-                await axios.delete(`http://localhost:3000/api/direcciones/${id}`, {
+                await axios.delete(`http://localhost:3000/api/departments/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -913,7 +990,7 @@
             };
 
             try {
-                await axios.put(`http://localhost:3000/api/direcciones/${id}`, formData, {
+                await axios.put(`http://localhost:3000/api/departments/${id}`, formData, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Content-Type': 'application/json'
@@ -929,56 +1006,82 @@
             }
         }
 
-        let jefesDisponibles = [];
+        let todosLosUsuarios = []; // Variable global para almacenar todos los usuarios
 
-        // Función para cargar jefes disponibles
-        async function cargarJefesDisponibles() {
+        async function cargarJefesDisponibles(editingDeptId = null) {
             try {
-                const response = await axios.get('http://localhost:3000/api/usuarios', {
+                // 1. Obtener todos los usuarios activos con roles adecuados
+                const response = await axios.get('http://localhost:3000/api/users?roles=director,admin', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
-                // Filtrar los roles que consideras "jefes" - Asegúrate que estos roles coincidan con tu backend
-                jefesDisponibles = response.data.filter(usuario =>
-                    usuario.Rol === 'Director General de Recursos Humanos' ||
-                    usuario.Rol === 'SAF' ||
-                    usuario.Rol === 'OUM'
+                todosLosUsuarios = response.data;
+
+                // 2. Obtener las direcciones para identificar quiénes son jefes
+                const dirResponse = await axios.get('http://localhost:3000/api/departments', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                // 3. Filtrar jefes actuales (excepto el del departamento que estamos editando)
+                const jefesActualesIds = dirResponse.data
+                    .filter(dept => !editingDeptId || dept.DepartmentID != editingDeptId)
+                    .map(dept => dept.HeadID)
+                    .filter(id => id !== null);
+
+                // 4. Filtrar usuarios disponibles (no son jefes en otras direcciones)
+                jefesDisponibles = todosLosUsuarios.filter(user =>
+                    !jefesActualesIds.includes(user.UserID)
                 );
 
-                console.log('Jefes disponibles:', jefesDisponibles); // Para depuración
-
-                // Llamar a la función que actualiza los selects
                 actualizarSelectJefes();
             } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                showError('Error al cargar la lista de jefes');
+                console.error('Error al cargar jefes disponibles:', error);
+                showError('Error al cargar la lista de jefes disponibles');
+
+                // Mostrar opción vacía en caso de error
+                const selectJefe = document.getElementById('deptJefe');
+                selectJefe.innerHTML = '<option value="">Error al cargar jefes</option>';
             }
         }
 
-        // Actualizar select de jefes en los modales
+        function showToast(message, type = 'info') {
+            // Puedes implementar un sistema de notificaciones más elegante
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg ${type === 'error' ? 'bg-red-500' :
+                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                } text-white`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
         function actualizarSelectJefes() {
             const selectJefeNuevo = document.getElementById('deptJefe');
-
-            // Limpiar opciones existentes
             selectJefeNuevo.innerHTML = '<option value="">Seleccionar jefe...</option>';
 
-            // Verificar si hay jefes disponibles
             if (!jefesDisponibles || jefesDisponibles.length === 0) {
-                console.warn('No hay jefes disponibles para mostrar');
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "No hay usuarios disponibles";
+                option.disabled = true;
+                option.selected = true;
+                selectJefeNuevo.appendChild(option);
                 return;
             }
 
-            // Agregar jefes disponibles
             jefesDisponibles.forEach(jefe => {
                 const option = document.createElement('option');
-                option.value = jefe.UsuarioID;
-                option.textContent = `${jefe.Nombre} (${jefe.Rol})`; // Muestra nombre y rol para referencia
+                option.value = jefe.UserID;
+                option.textContent = `${jefe.Name} (${jefe.Role})`;
                 selectJefeNuevo.appendChild(option);
             });
-
-            console.log('Select de jefes actualizado'); // Para depuración
         }
     </script>
 </body>
