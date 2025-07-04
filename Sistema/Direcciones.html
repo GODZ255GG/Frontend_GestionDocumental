@@ -19,15 +19,44 @@
             transition: all 0.3s ease;
         }
 
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
         .department-card {
+            height: 220px;
             display: flex;
             flex-direction: column;
-            min-height: 200px;
+            position: relative;
+            overflow: hidden;
+            /* Asegura que nada se salga de la tarjeta */
+        }
+
+        .department-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            /* Alinea los items en la parte superior */
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            min-height: 80px;
+            /* Altura mínima para el encabezado */
+        }
+
+        .department-title {
+            font-weight: 500;
+            color: #1a202c;
+            margin-right: 1rem;
+            /* Espacio entre título y botones */
+            word-break: break-word;
+            /* Rompe palabras largas */
+            flex-grow: 1;
+            /* Ocupa todo el espacio disponible */
+        }
+
+        .department-actions {
+            display: flex;
+            gap: 0.5rem;
+            position: relative;
+            /* Cambiado de absolute a relative */
+            margin-left: auto;
+            /* Empuja los botones a la derecha */
         }
 
         .department-card h3 {
@@ -37,7 +66,9 @@
         }
 
         .department-grid {
+            display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
         }
 
         .badge-active {
@@ -50,12 +81,17 @@
             padding: 0.25rem 0.5rem;
         }
 
-        /* Estilos para los botones de acción */
-        .department-card button {
-            transition: all 0.2s ease;
+        .action-button {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
         }
 
-        .department-card button:hover {
+        .action-button:hover {
             transform: scale(1.1);
         }
 
@@ -73,12 +109,6 @@
 
         .fade-in {
             animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        .department-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
         }
 
         /* Notificación de error */
@@ -118,16 +148,6 @@
 
         #errorNotification.hiding {
             animation: slideOut 0.3s forwards;
-        }
-
-        /* Mejoras para los selects */
-        select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
         }
     </style>
 </head>
@@ -522,59 +542,53 @@
             const grid = document.querySelector('.department-grid');
             grid.innerHTML = '';
 
-            // Ajustamos el grid para tarjetas más flexibles
-            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
-            grid.style.gap = '1.5rem';
-
             direcciones.forEach(direccion => {
-                const card = document.createElement('div');
-                card.className = 'department-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md flex flex-col';
+                const card = document.createElement('a');
+                card.className = 'department-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md cursor-pointer';
+                card.onclick = () => {
+                    window.location.href = `SubProcesos.html?departmentId=${direccion.DepartmentID}`;
+                };
 
                 card.innerHTML = `
-            <div class="p-4 border-b border-gray-200 flex items-start justify-between">
-                <div class="flex items-start space-x-3 flex-1 min-w-0">
-                    <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0 mt-1">
-                        <i class="fas fa-folder"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-medium text-gray-800 break-words">${direccion.Name}</h3>
-                        <p class="text-xs text-gray-500 mt-1">${direccion.memberCount || '0'} Miembros</p>
-                    </div>
-                </div>
-                
-                <!-- Columna de botones -->
-                <div class="flex flex-col space-y-2 ml-2">
-                    <button onclick="editarDireccion(${direccion.DepartmentID})" 
-                            class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full"
-                            title="Editar dirección">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="confirmarEliminarDireccion(${direccion.DepartmentID})" 
-                            class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full"
-                            title="Eliminar dirección">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+    <div class="department-card-header">
+        <div class="flex items-center space-x-3 flex-1 min-w-0">
+            <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-folder"></i>
             </div>
-            <div class="p-4 flex-1">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="px-2 py-1 text-xs rounded-full ${direccion.IsActive ? 'badge-active' : 'badge-inactive'} text-white">
-                        ${direccion.IsActive ? 'Activa' : 'Inactiva'}
-                    </span>
-                    <div class="text-sm text-gray-500">
-                        <i class="fas fa-file-alt mr-1"></i>
-                        <span>${direccion.procedureCount || '0'} Procedimientos</span>
-                    </div>
-                </div>
-                <div class="flex items-center text-sm text-gray-500 mb-2">
-                    <i class="fas fa-user-tie mr-2"></i>
-                    <span class="break-words">${direccion.HeadName || 'Sin jefe asignado'}</span>
-                </div>
-                <div class="text-xs text-gray-400 mt-auto">
-                    ${direccion.CreatedAt ? `Última modificación: ${formatDate(direccion.CreatedAt)}` : ''}
-                </div>
+            <h3 class="department-title">${direccion.Name}</h3>
+            <div class="department-actions" onclick="event.stopPropagation()">
+                <button onclick="editarDireccion(${direccion.DepartmentID})" 
+                        class="action-button bg-blue-100 text-blue-600 hover:bg-blue-200"
+                        title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="confirmarEliminarDireccion(${direccion.DepartmentID})" 
+                        class="action-button bg-red-100 text-red-600 hover:bg-red-200"
+                        title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
-        `;
+        </div>
+    </div>
+    <div class="p-4 flex-1">
+        <div class="flex justify-between items-center mb-2">
+            <span class="px-2 py-1 text-xs rounded-full ${direccion.IsActive ? 'badge-active' : 'badge-inactive'} text-white">
+                ${direccion.IsActive ? 'Activa' : 'Inactiva'}
+            </span>
+            <div class="text-sm text-gray-500">
+                <i class="fas fa-file-alt mr-1"></i>
+                <span>${direccion.procedureCount || '0'} Procedimientos</span>
+            </div>
+        </div>
+        <div class="flex items-center text-sm text-gray-500">
+            <i class="fas fa-user-tie mr-2"></i>
+            <span class="break-words">${direccion.HeadName || 'Sin jefe asignado'}</span>
+        </div>
+        <div class="mt-2 text-xs text-gray-400">
+            ${direccion.CreatedAt ? `Última modificación: ${formatDate(direccion.CreatedAt)}` : ''}
+        </div>
+    </div>
+`;
 
                 grid.appendChild(card);
             });
