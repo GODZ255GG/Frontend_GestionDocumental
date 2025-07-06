@@ -646,17 +646,30 @@
             });
         });
 
-        // Función para abrir el modal
         function openNewDepartmentModal() {
             resetDepartmentForm();
+
+            // Mostrar estado de carga
+            const selectJefe = document.getElementById('deptJefe');
+            selectJefe.innerHTML = '<option value="">Cargando jefes disponibles...</option>';
+            selectJefe.disabled = true;
+
+            // Mostrar el modal inmediatamente
             document.getElementById('newDepartmentModal').classList.remove('hidden');
             document.getElementById('modalTitle').textContent = 'Nueva Dirección';
             document.getElementById('deptId').value = '';
+
+            // Cargar jefes en segundo plano
+            cargarJefesDisponibles().catch(error => {
+                console.error('Error al cargar jefes:', error);
+                showError('Error al cargar la lista de jefes');
+            });
         }
 
-        // Función para cerrar el modal
         function closeNewDepartmentModal() {
             document.getElementById('newDepartmentModal').classList.add('hidden');
+            // Resetear el select de jefes
+            document.getElementById('deptJefe').innerHTML = '<option value="">Seleccionar jefe...</option>';
         }
 
         // Función para resetear el formulario
@@ -681,27 +694,37 @@
                 document.getElementById('deptSecretaria').value = direccion.Secretariat;
                 document.getElementById('deptActivo').checked = direccion.IsActive;
 
-                // Primero cargar todos los jefes disponibles
+                // Cargar jefes disponibles
                 await cargarJefesDisponibles(direccion.DepartmentID);
 
-                // Luego establecer el jefe actual si existe
+                // Si hay un jefe asignado, asegurarse de que esté en la lista
                 const selectJefe = document.getElementById('deptJefe');
                 if (direccion.HeadID) {
-                    // Verificar si el jefe actual está en la lista de disponibles
-                    const jefeActual = todosLosUsuarios.find(u => u.UserID === direccion.HeadID);
-                    if (jefeActual) {
-                        // Si el jefe actual no está en las opciones, lo agregamos
-                        const optionExists = Array.from(selectJefe.options).some(opt => opt.value === direccion.HeadID);
-                        if (!optionExists) {
-                            const option = document.createElement('option');
-                            option.value = direccion.HeadID;
-                            option.textContent = `${jefeActual.Name} (${jefeActual.Role})`;
-                            selectJefe.appendChild(option);
+                    // Verificar si el jefe actual está en las opciones
+                    let found = false;
+                    for (let i = 0; i < selectJefe.options.length; i++) {
+                        if (selectJefe.options[i].value == direccion.HeadID) {
+                            found = true;
+                            break;
                         }
-                        selectJefe.value = direccion.HeadID;
                     }
-                } else {
-                    selectJefe.value = '';
+
+                    // Si no está, obtener sus datos y agregarlo
+                    if (!found) {
+                        const headResponse = await axios.get(`http://localhost:3000/api/users/${direccion.HeadID}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+
+                        const headUser = headResponse.data;
+                        const option = document.createElement('option');
+                        option.value = headUser.UserID;
+                        option.textContent = `${headUser.Name} (${headUser.Role})`;
+                        selectJefe.appendChild(option);
+                    }
+
+                    selectJefe.value = direccion.HeadID;
                 }
 
                 // Mostrar modal
@@ -1023,44 +1046,79 @@
         let todosLosUsuarios = []; // Variable global para almacenar todos los usuarios
 
         async function cargarJefesDisponibles(editingDeptId = null) {
+            const selectJefe = document.getElementById('deptJefe');
+            selectJefe.innerHTML = '<option value="">Cargando usuarios disponibles...</option>';
+            selectJefe.disabled = true;
+
             try {
-                // 1. Obtener todos los usuarios activos con roles adecuados
-                const response = await axios.get('http://localhost:3000/api/users?roles=director,admin', {
+                // 1. Obtener usuarios que no son jefes
+                const response = await axios.get('http://localhost:3000/api/users/non-department-heads', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
-                todosLosUsuarios = response.data;
+                // Limpiar el select
+                selectJefe.innerHTML = '<option value="">Seleccionar jefe...</option>';
 
-                // 2. Obtener las direcciones para identificar quiénes son jefes
-                const dirResponse = await axios.get('http://localhost:3000/api/departments', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                // 2. Si estamos editando, obtener el jefe actual (si existe)
+                let currentHead = null;
+                if (editingDeptId) {
+                    const deptResponse = await axios.get(`http://localhost:3000/api/departments/${editingDeptId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (deptResponse.data.HeadID) {
+                        const userResponse = await axios.get(`http://localhost:3000/api/users/${deptResponse.data.HeadID}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        currentHead = userResponse.data;
                     }
+                }
+
+                // 3. Manejar caso cuando no hay usuarios disponibles
+                if (!response.data.success && !currentHead) {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "No hay usuarios disponibles";
+                    option.disabled = true;
+                    selectJefe.appendChild(option);
+                    selectJefe.disabled = false;
+                    return;
+                }
+
+                // 4. Combinar usuarios disponibles con el jefe actual (si existe)
+                const availableUsers = currentHead ?
+                    [currentHead, ...(response.data.data || [])] :
+                    (response.data.data || []);
+
+                // 5. Poblar el select
+                availableUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.UserID;
+                    option.textContent = `${user.Name}${user.Role ? ` (${user.Role})` : ''}`;
+                    selectJefe.appendChild(option);
                 });
 
-                // 3. Filtrar jefes actuales (excepto el del departamento que estamos editando)
-                const jefesActualesIds = dirResponse.data
-                    .filter(dept => !editingDeptId || dept.DepartmentID != editingDeptId)
-                    .map(dept => dept.HeadID)
-                    .filter(id => id !== null);
-
-                // 4. Filtrar usuarios disponibles (no son jefes en otras direcciones)
-                jefesDisponibles = todosLosUsuarios.filter(user =>
-                    !jefesActualesIds.includes(user.UserID)
-                );
-
-                actualizarSelectJefes();
+                selectJefe.disabled = false;
             } catch (error) {
-                console.error('Error al cargar jefes disponibles:', error);
-                showError('Error al cargar la lista de jefes disponibles');
+                console.error('Error al cargar usuarios disponibles:', error);
+                selectJefe.innerHTML = '<option value="">Error al cargar usuarios</option>';
+                selectJefe.disabled = false;
 
-                // Mostrar opción vacía en caso de error
-                const selectJefe = document.getElementById('deptJefe');
-                selectJefe.innerHTML = '<option value="">Error al cargar jefes</option>';
+                let errorMessage = 'Error al cargar la lista de usuarios disponibles';
+                if (error.response?.data?.message) {
+                    errorMessage += `: ${error.response.data.message}`;
+                }
+                showError(errorMessage);
             }
         }
+
+        // Elimina la función actualizarSelectJefes ya que no es necesaria con este enfoque
 
         function showToast(message, type = 'info') {
             // Puedes implementar un sistema de notificaciones más elegante
@@ -1077,16 +1135,15 @@
         }
 
         function actualizarSelectJefes() {
-            const selectJefeNuevo = document.getElementById('deptJefe');
-            selectJefeNuevo.innerHTML = '<option value="">Seleccionar jefe...</option>';
+            const selectJefe = document.getElementById('deptJefe');
+            selectJefe.innerHTML = '<option value="">Seleccionar jefe...</option>';
 
             if (!jefesDisponibles || jefesDisponibles.length === 0) {
                 const option = document.createElement('option');
                 option.value = "";
                 option.textContent = "No hay usuarios disponibles";
                 option.disabled = true;
-                option.selected = true;
-                selectJefeNuevo.appendChild(option);
+                selectJefe.appendChild(option);
                 return;
             }
 
@@ -1094,7 +1151,7 @@
                 const option = document.createElement('option');
                 option.value = jefe.UserID;
                 option.textContent = `${jefe.Name} (${jefe.Role})`;
-                selectJefeNuevo.appendChild(option);
+                selectJefe.appendChild(option);
             });
         }
     </script>
