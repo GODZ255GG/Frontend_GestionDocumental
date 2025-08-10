@@ -19,56 +19,6 @@
             transition: all 0.3s ease;
         }
 
-        .procedure-card {
-            height: 220px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-            background-color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            transition: all 0.2s ease;
-        }
-
-        .procedure-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            min-height: 80px;
-        }
-
-        .procedure-title {
-            font-weight: 500;
-            color: #1a202c;
-            margin-right: 1rem;
-            word-break: break-word;
-            flex-grow: 1;
-        }
-
-        .procedure-actions {
-            display: flex;
-            gap: 0.5rem;
-            position: relative;
-            margin-left: auto;
-        }
-
-        .action-button {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.2s;
-        }
-
-        .action-button:hover {
-            transform: scale(1.1);
-        }
-
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -201,16 +151,7 @@
             visibility: visible;
         }
 
-        /* Nuevos estilos para procedimientos */
-        .procedure-card {
-            transition: all 0.2s ease;
-        }
-
-        .procedure-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
+        /* Estilos para los badges de estado */
         .status-badge {
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
@@ -256,10 +197,10 @@
                     <div class="text-blue-200 uppercase text-xs font-semibold mb-2 sidebar-text">Menú Principal</div>
                     <ul>
                         <li class="mb-2">
-                            <a href="Procedimientos.html"
+                            <a href="MisProcedimientos.html"
                                 class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
                                 <i class="fas fa-file-pdf mr-3"></i>
-                                <span class="sidebar-text">Procedimientos</span>
+                                <span class="sidebar-text">Mis Procedimientos</span>
                             </a>
                         </li>
                         <li class="mb-2">
@@ -647,49 +588,52 @@
 
             procedures.forEach(proc => {
                 const card = document.createElement('div');
-                card.className = 'procedure-card bg-white rounded-lg shadow overflow-hidden transition-all hover:shadow-md cursor-pointer';
+                card.className = 'folder-card bg-white rounded-lg shadow overflow-hidden transition-all block hover:no-underline';
                 card.onclick = () => {
                     window.location.href = `Procedimiento.html?id=${proc.ProcedureID}`;
                 };
 
                 card.innerHTML = `
-            <div class="procedure-card-header">
-                <div class="flex items-center space-x-3 flex-1 min-w-0">
-                    <div class="w-10 h-10 rounded-full ${getRandomColorClass()} flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-file-alt"></i>
+                    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-medium text-gray-800">${proc.Title}</h3>
+                                <p class="text-xs text-gray-500">${proc.documentCount || '0'} documentos</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2" onclick="event.stopPropagation()">
+                            <button onclick="event.stopPropagation(); editProcedure(${proc.ProcedureID})" 
+                                    class="text-gray-400 hover:text-gray-600"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); confirmDeleteProcedure(${proc.ProcedureID})" 
+                                    class="text-gray-400 hover:text-gray-600"
+                                    title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
-                    <h3 class="procedure-title">${proc.Title}</h3>
-                    <div class="procedure-actions" onclick="event.stopPropagation()">
-                        <button onclick="editProcedure(${proc.ProcedureID})" 
-                                class="action-button bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="confirmDeleteProcedure(${proc.ProcedureID})" 
-                                class="action-button bg-red-100 text-red-600 hover:bg-red-200"
-                                title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            ${getStatusBadge(proc.Status)}
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-file-alt mr-1"></i>
+                                <span>${proc.documentCount || '0'} Documentos</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-user-edit mr-2"></i>
+                            <span>${proc.ResponsibleName || 'Sin responsable'}</span>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400">
+                            Última Modificación: ${proc.LastModified ? formatDate(proc.LastModified) : 'N/A'}
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="p-4 flex-1">
-                <div class="flex justify-between items-center mb-2">
-                    ${getStatusBadge(proc.Status)}
-                    <div class="text-sm text-gray-500">
-                        <i class="fas fa-calendar-alt mr-1"></i>
-                        <span>${formatDate(proc.LastModified)}</span>
-                    </div>
-                </div>
-                <div class="flex items-center text-sm text-gray-500">
-                    <i class="fas fa-user-edit mr-2"></i>
-                    <span class="break-words">${proc.ResponsibleName || 'Sin responsable asignado'}</span>
-                </div>
-                <div class="mt-2 text-xs text-gray-400">
-                    ${proc.Description ? proc.Description.substring(0, 100) + (proc.Description.length > 100 ? '...' : '') : 'Sin descripción'}
-                </div>
-            </div>
-        `;
+                `;
                 gridView.appendChild(card);
             });
         }
@@ -702,40 +646,38 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 transition-colors';
                 row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center text-blue-600">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">${proc.Title}</div>
-                    </div>
-                </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                ${getStatusBadge(proc.Status)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${proc.ResponsibleName || 'No asignado'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${formatDate(proc.LastModified)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                    <button onclick="editProcedure(${proc.ProcedureID})" 
-                            class="action-button bg-blue-100 text-blue-600 hover:bg-blue-200"
-                            title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="confirmDeleteProcedure(${proc.ProcedureID})" 
-                            class="action-button bg-red-100 text-red-600 hover:bg-red-200"
-                            title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center text-blue-600">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${proc.Title}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${getStatusBadge(proc.Status)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${proc.ResponsibleName || 'No asignado'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(proc.LastModified)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button onclick="editProcedure(${proc.ProcedureID})" 
+                                    class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="confirmDeleteProcedure(${proc.ProcedureID})" 
+                                    class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
                 listViewBody.appendChild(row);
             });
         }
@@ -917,32 +859,6 @@
                 console.error('Error al eliminar procedimiento:', error);
                 showNotification('errorNotification', error.message || 'Error al eliminar el procedimiento');
             }
-        }
-
-        function getRandomColorClass() {
-            const colors = ['bg-green-100 text-green-600', 'bg-yellow-100 text-yellow-600',
-                'bg-red-100 text-red-600', 'bg-blue-100 text-blue-600'];
-            return colors[Math.floor(Math.random() * colors.length)];
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-
-        function getStatusBadge(status) {
-            if (!status) return '';
-
-            const statusMap = {
-                'Draft': { class: 'badge-draft', text: 'Borrador' },
-                'Active': { class: 'badge-active', text: 'Activo' },
-                'Pending': { class: 'badge-pending', text: 'Pendiente' },
-                'Archived': { class: 'badge-archived', text: 'Archivado' }
-            };
-
-            const statusInfo = statusMap[status] || { class: 'badge-draft', text: status };
-            return `<span class="px-2 py-1 text-xs rounded-full ${statusInfo.class} text-white">${statusInfo.text}</span>`;
         }
     </script>
 </body>

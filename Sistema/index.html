@@ -180,17 +180,25 @@
                 }
 
                 const data = await response.json();
+                console.log('Respuesta completa del login:', data);
 
                 if (!data.token) {
                     throw new Error('No se recibió token de autenticación');
                 }
 
-                // Almacenar datos
+                // Almacenar datos - AJUSTADO A TU ESTRUCTURA REAL
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('userData', JSON.stringify(data.user));
+                localStorage.setItem('userData', JSON.stringify({
+                    userId: data.user.id,  // Nota: usa 'id' en minúsculas según tu respuesta
+                    name: data.user.nombre,
+                    email: data.user.email,
+                    departmentId: data.user.direccionId,
+                    role: data.user.rol,
+                    isDepartmentHead: data.user.IsDepartmentHead
+                }));
 
                 // Redirección
-                window.location.href = 'Procedimientos.html';
+                window.location.href = 'MisProcedimientos.html';
             } catch (error) {
                 console.error('Error en login:', error);
                 alert(`Error: ${error.message}`);
