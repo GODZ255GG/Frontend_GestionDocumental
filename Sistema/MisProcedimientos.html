@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV University - Procedimientos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-preview {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .document-card:hover .quick-preview {
+            opacity: 1;
+        }
+
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #3b82f6;
+            background-color: #f0f7ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #3b82f6;
+            background-color: #ebf5ff;
+        }
+
+        .badge-draft {
+            background-color: #f59e0b;
+        }
+
+        .badge-active {
+            background-color: #10b981;
+        }
+
+        .badge-archived {
+            background-color: #64748b;
+        }
+
+        .badge-pending {
+            background-color: #6366f1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .folder-card>div.p-4.border-b {
+            flex-wrap: nowrap;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center {
+            min-width: 0;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center>div {
+            min-width: 0;
+        }
+
+        .folder-card>div.p-4.border-b .flex.items-center>div h3,
+        .folder-card>div.p-4.border-b .flex.items-center>div p {
+            white-space: normal;
+            overflow-wrap: break-word;
+            overflow: visible;
+            text-overflow: clip;
+            max-width: none;
+        }
+
+        .document-tab {
+            transition: all 0.2s ease;
+        }
+
+        .document-tab.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .document-view-toggle {
+            transition: all 0.2s ease;
+        }
+
+        .document-view-toggle.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .document-card {
+            transition: all 0.2s ease;
+        }
+
+        .document-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .folder-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .context-menu {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Estilos para los badges de estado */
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-draft {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-active {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-pending {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-archived {
+            background-color: #E5E7EB;
+            color: #1F2937;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
+            <div class="p-4 flex items-center justify-between border-b border-blue-700">
+                <div class="flex items-center">
+                    <i class="fas fa-file-contract text-2xl mr-3"></i>
+                    <span class="sidebar-text font-bold text-xl">Gestión Documental</span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-6">
+                    <div class="text-blue-200 uppercase text-xs font-semibold mb-2 sidebar-text">Menú Principal</div>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="MisProcedimientos.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fas fa-file-pdf mr-3"></i>
+                                <span class="sidebar-text">Mis Procedimientos</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="Direcciones.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                                <i class="fa-regular fa-newspaper mr-3"></i>
+                                <span class="sidebar-text">Direcciones</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between p-4">
+                    <h1 class="text-2xl font-bold text-gray-800" id="pageTitle">Mis Procedimientos</h1>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Eliminar toda la sección de breadcrumb y filtros -->
+
+                <!-- Mostrar solo la cuadrícula de procedimientos -->
+                <div id="gridView" class="document-grid">
+                    <!-- Los procedimientos se cargarán aquí dinámicamente -->
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden col-span-full text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-blue-500 text-4xl mb-4"></i>
+                    <p class="text-lg text-gray-700">Cargando mis procedimientos...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden col-span-full text-center py-8">
+                    <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-lg text-gray-700">No has creado ningún procedimiento</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="hidden col-span-full text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                    <p class="text-lg text-gray-700">Error al cargar tus procedimientos</p>
+                    <p class="text-sm text-gray-500 mt-2" id="errorMessage"></p>
+                    <button onclick="loadProcedures()"
+                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Reintentar
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar autenticación
+            const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('userData'));
+
+            console.log('Datos de usuario en localStorage:', userData);
+
+            if (!token || !userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Cargar procedimientos del usuario
+            await loadProcedures();
+        });
+
+        async function loadProcedures() {
+            try {
+                showLoadingState();
+
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                const userId = userData.userId;
+
+                console.log('User ID obtenido:', userId);
+
+                const response = await fetch(`http://localhost:3000/api/procedures/by-user/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al cargar procedimientos');
+                }
+
+                const result = await response.json();
+                console.log('Respuesta de la API:', result);
+
+                // Mostrar todos los procedimientos del usuario (sin filtrar por CreatedBy)
+                const procedures = result.data || result;
+
+                if (!procedures || procedures.length === 0) {
+                    showEmptyState();
+                } else {
+                    renderProcedures(procedures);
+                }
+            } catch (error) {
+                console.error('Error al cargar procedimientos:', error);
+                showErrorState(error.message);
+            }
+        }
+
+        function renderProcedures(procedures) {
+            const gridView = document.getElementById('gridView');
+            gridView.innerHTML = '';
+
+            procedures.forEach(proc => {
+                const card = document.createElement('div');
+                card.className = 'folder-card bg-white rounded-lg shadow overflow-hidden transition-all block hover:no-underline';
+                card.onclick = () => {
+                    window.location.href = `Procedimiento.html?id=${proc.ProcedureID}`;
+                };
+
+                card.innerHTML = `
+                <div class="p-4 border-b border-gray-200">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-medium text-gray-800">${proc.Title}</h3>
+                            <p class="text-xs text-gray-500 truncate">${proc.Description || 'Sin descripción'}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="mb-2">
+                        ${getStatusBadge(proc.Status)}
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        Creado el: ${formatDate(proc.CreatedAt)}
+                    </div>
+                </div>
+            `;
+                gridView.appendChild(card);
+            });
+
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        function showLoadingState() {
+            document.getElementById('gridView').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+        }
+
+        function showEmptyState() {
+            document.getElementById('gridView').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+        }
+
+        function showErrorState(message) {
+            document.getElementById('gridView').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function getStatusBadge(status) {
+            const statusMap = {
+                'Draft': { class: 'status-draft', text: 'Borrador' },
+                'Active': { class: 'status-active', text: 'Activo' },
+                'Pending': { class: 'status-pending', text: 'Pendiente' },
+                'Archived': { class: 'status-archived', text: 'Archivado' }
+            };
+
+            const statusInfo = statusMap[status] || { class: 'status-draft', text: status };
+            return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+    </script>
+</body>
+
+</html>
