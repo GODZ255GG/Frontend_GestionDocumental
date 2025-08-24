@@ -64,9 +64,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Validar tipos y tamaño (según tu HTML: PDF, DOCX, etc., up to 10MB)
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Tipo de archivo no permitido.');
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/bmp',
+      'image/webp'
+    ];
+    const extOk = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i.test(file.name);
+    if (!allowedTypes.includes(file.type) && !extOk) {
+      alert('Solo Word, PDF e imágenes.');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
