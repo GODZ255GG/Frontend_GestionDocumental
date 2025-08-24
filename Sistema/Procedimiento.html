@@ -72,7 +72,8 @@
                             </a>
                         </li>
                         <li class="mb-2">
-                            <a href="Direcciones.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                            <a href="Direcciones.html"
+                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
                                 <i class="fa-regular fa-newspaper mr-3"></i>
                                 <span class="sidebar-text">Direcciones</span>
                             </a>
@@ -116,21 +117,20 @@
                             </div>
                         </div>
                     </div>
-                </div>                
+                </div>
 
                 <!-- Related Documents -->
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                         <h3 class="font-semibold mb-4">Archivos</h3>
-                        <button 
-                            onclick="openUploadModal()" 
+                        <button onclick="openUploadModal()"
                             class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow transition duration-150 flex items-center">
                             <i class="fas fa-upload mr-2"></i> Subir Archivo
                         </button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div
-                            class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300">                            
+                            class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300">
                             <div class="flex items-start">
                                 <div class="bg-blue-100 p-3 rounded-lg mr-3">
                                     <i class="fas fa-file-word text-blue-600 text-xl"></i>
@@ -227,8 +227,11 @@
                                                     </label>
                                                     <p class="pl-1">o arrastra y suelta el archivo aquí</p>
                                                 </div>
-                                                <p class="text-xs text-gray-500">PDF, DOCX, BPM, JPG y PNG up to 10MB
+                                                <p class="text-xs text-gray-500">
+                                                    Solo Word (.doc, .docx), PDF e Imágenes (JPG, PNG, BMP, WEBP) hasta
+                                                    10 MB
                                                 </p>
+
                                             </div>
                                         </div>
                                         <div id="fileInfo" class="hidden mt-2 text-sm text-gray-600">
@@ -281,33 +284,17 @@
     </div>
 
     <script>
-        function openDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('hidden');
+        // === Utilidades ===
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
 
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('hidden');
-        }
-
-        function confirmDelete() {
-            showSuccessNotificationDelete();
-            closeDeleteModal();
-        }
-
-        function showSuccessNotificationDelete() {
-            const notification = document.getElementById('successNotificationDelete');
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
-        // Upload Modal Functions
         function openUploadModal() {
             document.getElementById('uploadModal').classList.remove('hidden');
-            // Set current date
             const today = new Date();
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('creationDate').value = today.toLocaleDateString('en-US', options);
+            document.getElementById('creationDate').value = today.toLocaleDateString('es-MX', options);
         }
 
         function closeUploadModal() {
@@ -316,142 +303,190 @@
         }
 
         function resetUploadForm() {
-            document.getElementById('sendCommentsForm').reset();
-        }
-        
-        function openVersionModal() {
-            document.getElementById('versionModal').classList.remove('hidden');
-            // Set current date
-            const today = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('creationDate').value = today.toLocaleDateString('en-US', options);
-        }
+            // <-- nombre correcto del form de carga
+            const form = document.getElementById('uploadForm');
+            if (form) form.reset();
 
-        function closeVersionModal() {
-            document.getElementById('versionModal').classList.add('hidden');
-            resetUploadForm();
-        }
-
-        function submitversionForm() {
-            showSuccessNotificationVersion();
-            closeVersionModal();
-        }
-
-        function showSuccessNotificationVersion() {
-            const notification = document.getElementById('successNotificationVersion');
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
-
-       // 1) Mostrar modal y pre-llenar fecha
-            function openSendCommentsModal() {
-                const today = new Date();
-                const opts = { year: 'numeric', month: 'long', day: 'numeric' };
-                document.getElementById('revisionDate').value =
-                today.toLocaleDateString('es-MX', opts);
-                document.getElementById('sendCommentsModal')
-                        .classList.remove('hidden');
+            // reset UI de archivo
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            if (fileUploadArea && fileInfo) {
+                fileUploadArea.classList.remove('hidden');
+                fileInfo.classList.add('hidden');
             }
+            if (fileName) fileName.textContent = '';
+        }
 
-            // 2) Cerrar modal y resetear formulario
-            function closeSendCommentsModal() {
-                document.getElementById('sendCommentsForm').reset();
-                document.getElementById('sendCommentsModal')
-                        .classList.add('hidden');
-            }
-
-            // 3) Enviar comentario, cerrar modal y lanzar toast
-            function submitSendComments() {
-                const comment = document.getElementById('commentText').value.trim();
-                if (!comment) {
-                alert('Por favor escribe un comentario.');
-                return;
-                }
-                closeSendCommentsModal();
-
-                // Crear notificación
-                const toast = document.createElement('div');
-                toast.className = 'flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded shadow-lg animate-fade-in';
-                toast.innerHTML = `
-                <i class="fas fa-check-circle"></i>
-                <span>Enviado a revisión</span>
-                `;
-                document.getElementById('notification-container')
-                        .appendChild(toast);
-
-                // Desvanecer y eliminar
-                setTimeout(() => {
-                toast.classList.add('animate-fade-out');
-                toast.addEventListener('animationend', () => toast.remove());
-                }, 3000);
-             }
-
-
-
-
-
-        // File Upload Handling
+        // === Drag & Drop + Selección de archivo ===
         const fileInput = document.getElementById('file');
         const fileUploadArea = document.getElementById('fileUploadArea');
         const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const removeFileBtn = document.getElementById('removeFile');
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                const file = e.target.files[0];
-                if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                    alert('File size exceeds 10MB limit');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert('El archivo supera el límite de 10MB');
+                        fileInput.value = '';
+                        return;
+                    }
+                    if (fileName) fileName.textContent = file.name;
+                    if (fileUploadArea) fileUploadArea.classList.add('hidden');
+                    if (fileInfo) fileInfo.classList.remove('hidden');
+                }
+            });
+        }
+
+        if (fileUploadArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileUploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            fileUploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt && dt.files ? dt.files : null;
+                if (!files || !files.length) return;
+
+                const file = files[0];
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('El archivo supera el límite de 10MB');
                     return;
                 }
-                fileName.textContent = file.name;
+                if (fileInput) fileInput.files = files;
+
+                if (fileName) fileName.textContent = file.name;
                 fileUploadArea.classList.add('hidden');
-                fileInfo.classList.remove('hidden');
-            }
-        });
+                if (fileInfo) fileInfo.classList.remove('hidden');
+            });
+        }
 
-        // Drag and Drop Handling
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            fileUploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        // Toggle sidebar
-        document.getElementById('toggleSidebar').addEventListener('click', function () {
-            document.querySelector('.sidebar').classList.toggle('sidebar-collapsed');
-        });
+        if (removeFileBtn) {
+            removeFileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (fileInput) fileInput.value = '';
+                if (fileUploadArea) fileUploadArea.classList.remove('hidden');
+                if (fileInfo) fileInfo.classList.add('hidden');
+                if (fileName) fileName.textContent = '';
+            });
+        }
 
-        // Simulate role-based view (for demo purposes)
-        const roles = ['personal', 'director_rh', 'finanzas', 'uom'];
-        let currentRole = 'director_rh'; // Change this to test different views
+        // === Subir documento + versión 1 ===
+        async function submitUploadForm() {
+            const token = localStorage.getItem('token');
+            const params = new URLSearchParams(window.location.search);
+            const procedureId = params.get('id'); // si vas a asociar a un procedimiento
 
-        function updateUIForRole(role) {
-            const menuDirecciones = document.getElementById('menuDirecciones');
-            const btnSubProcesos = document.getElementById('btnSubProcesos');
-            const btnNuevoProcedimiento = document.getElementById('btnNuevoProcedimiento'); // Por si no existe el botón en la página actual
+            const titleEl = document.getElementById('title');
+            const fileEl = document.getElementById('file');
+            const title = titleEl ? titleEl.value.trim() : '';
+            const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
 
-            if (role === 'personal') {
-                btnSubProcesos.style.display = "flex";
-                menuDirecciones.style.display = "none";
+            if (!title || !file) {
+                alert('Nombre y archivo son requeridos.');
+                return;
             }
-            else if (role === 'director_rh') {
-                btnSubProcesos.style.display = "none";
-                btnNuevoProcedimiento.style.display = "none";
-                menuDirecciones.style.display = "none";
+
+            // Validación de archivo en cliente
+            const ALLOWED_MIMES = new Set([
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg',
+                'image/png',
+                'image/bmp',
+                'image/webp'
+            ]);
+            const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
+
+            function isAllowedFile(file) {
+                return ALLOWED_MIMES.has(file.type) || EXT_OK.test(file.name);
             }
-            else if (role === 'finanzas') {
-                btnSubProcesos.style.display = "none";
-                btnNuevoProcedimiento.style.display = "none";
+
+            // En change / drop:
+            if (!isAllowedFile(file)) {
+                alert('Solo se permiten Word (.doc/.docx), PDF e imágenes (JPG/PNG/BMP/WEBP).');
+                fileInput.value = '';
+                return;
             }
-            else if (role === 'uom') {
-                btnSubProcesos.style.display = "none";
-                btnNuevoProcedimiento.style.display = "none";
-                menuDirecciones.style.display = "none";
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('El archivo supera el límite de 10MB.');
+                fileInput.value = '';
+                return;
+            }
+
+            if (!token) {
+                alert('No hay token en localStorage. Inicia sesión.');
+                return;
+            }
+
+            try {
+                // 1) Crear documento
+                const createResp = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: title, description: '' })
+                });
+                if (!createResp.ok) {
+                    const txt = await createResp.text();
+                    throw new Error(`Error creando documento: ${txt}`);
+                }
+                const created = await createResp.json();
+                const documentId = created.documentId;
+
+                // 2) Subir versión
+                const fd = new FormData();
+                fd.append('file', file);
+                const versionResp = await fetch(`/api/documents/${documentId}/versions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: fd
+                });
+                if (!versionResp.ok) {
+                    const txt = await versionResp.text();
+                    throw new Error(`Error subiendo versión: ${txt}`);
+                }
+
+                // 3) (Opcional) Asociar al procedimiento si tienes endpoint para ello:
+                // await fetch(`/api/procedures/${procedureId}/documents/${documentId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+
+                // Notificación de éxito
+                const notification = document.getElementById('successNotification');
+                if (notification) {
+                    notification.classList.remove('hidden');
+                    setTimeout(() => notification.classList.add('hidden'), 5000);
+                }
+
+                closeUploadModal();
+                // TODO: refrescar la lista de archivos si ya tienes endpoint
+                // await loadArchivos();
+            } catch (err) {
+                console.error(err);
+                alert(err.message || 'Error desconocido al subir el archivo');
             }
         }
-        // Initialize with current role
-        updateUIForRole(currentRole);
+
+        // === Botones varios que podrían no existir en este HTML (evita errores) ===
+        const toggleSidebarBtn = document.getElementById('toggleSidebar');
+        if (toggleSidebarBtn) {
+            toggleSidebarBtn.addEventListener('click', function () {
+                document.querySelector('.sidebar').classList.toggle('sidebar-collapsed');
+            });
+        }
+
+        // Exponer funciones que llamas desde el HTML inline
+        window.openUploadModal = openUploadModal;
+        window.closeUploadModal = closeUploadModal;
+        window.submitUploadForm = submitUploadForm;
     </script>
+
 </body>
 
 </html>
