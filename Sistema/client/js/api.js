@@ -35,9 +35,9 @@ async function fetchAPI(endpoint, method = 'GET', body = null, token = null) {
 export const ProcedimientoAPI = {
   obtenerTodos: (token) => fetchAPI('/procedimientos', 'GET', null, token),
   crear: (procedimiento, token) => fetchAPI('/procedimientos', 'POST', procedimiento, token),
-  obtenerPorId: (id, token) => fetchAPI(`/procedimientos/${id}`, 'GET', null, token),
-  // Nueva para agregar doc a procedure
-  agregarDocumento: (id, documentId, token) => fetchAPI(`/procedimientos/${id}/documents`, 'POST', { documentId }, token),
+  obtenerPorId: (id, token) => fetchAPI(`/procedures/${id}`, 'GET', null, token),
+  agregarDocumento: (id, documentId, token) => fetchAPI(`/procedures/${id}/documents`, 'POST', { documentId }, token),
+  getDocumentsByProcedure: (id, token) => fetchAPI(`/procedures/${id}/documents`, 'GET', null, token),  // Nuevo para listar
   // Más funciones...
 };
 
