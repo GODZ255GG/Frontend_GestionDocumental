@@ -544,54 +544,82 @@
         }
 
         async function guardarSubproceso() {
-            const form = document.getElementById('subprocessForm');
-            const id = form.subprocessId.value;
-            const departmentId = form.departmentId.value;
+    const form = document.getElementById('subprocessForm');
+    const id = form.subprocessId.value;
+    const departmentId = form.departmentId.value;
 
-            if (!form.subprocessName.value.trim()) {
-                showError('El nombre del subproceso es requerido');
-                return;
-            }
+    if (!form.subprocessName.value.trim()) {
+        showError('El nombre del subproceso es requerido');
+        return;
+    }
 
-            const subprocessData = {
-                name: form.subprocessName.value.trim(),
-                description: form.subprocessDescription.value.trim(),
-                departmentId: departmentId
-                // No incluir isActive
+    const subprocessData = {
+        name: form.subprocessName.value.trim(),
+        description: form.subprocessDescription.value.trim(),
+        departmentId: departmentId
+    };
+
+    try {
+        let resp;
+        if (id) {
+            resp = await axios.put(`http://localhost:3000/api/subprocesses/${id}`, subprocessData, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            showSuccess('Subproceso actualizado correctamente');
+        } else {
+            resp = await axios.post('http://localhost:3000/api/subprocesses', subprocessData, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            showSuccess('Subproceso creado correctamente');
+        }
+
+        // Intentar usar el objeto retornado por el backend para actualizar UI inmediatamente
+        const returned = resp?.data?.data || resp?.data?.subprocess || resp?.data || null;
+
+        if (returned && (returned.SubprocessID || returned.subprocessId || returned.id || resp.data.insertId)) {
+            // Normalizar el objeto devuelto
+            const saved = {
+                SubprocessID: returned.SubprocessID || returned.subprocessId || returned.id || resp.data.insertId,
+                Name: returned.Name || returned.name || subprocessData.name,
+                Description: returned.Description || returned.description || subprocessData.description,
+                DepartmentID: returned.DepartmentID || returned.departmentId || departmentId,
+                CreatedAt: returned.CreatedAt || returned.createdAt || new Date().toISOString()
             };
 
-            try {
-                if (id) {
-                    await axios.put(`http://localhost:3000/api/subprocesses/${id}`, subprocessData, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    showSuccess('Subproceso actualizado correctamente');
-                } else {
-                    await axios.post('http://localhost:3000/api/subprocesses', subprocessData, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    showSuccess('Subproceso creado correctamente');
-                }
-
-                closeNewSubprocessModal();
-                await loadSubprocesses(departmentId);
-            } catch (error) {
-                console.error('Error al guardar subproceso:', error);
-                let errorMessage = 'Error al guardar subproceso';
-                if (error.response?.data?.message) {
-                    errorMessage += ': ' + error.response.data.message;
-                } else if (error.message) {
-                    errorMessage += ': ' + error.message;
-                }
-                showError(errorMessage);
+            if (id) {
+                // Reemplazar en el array local
+                const idx = subprocesses.findIndex(s => String(s.SubprocessID) === String(saved.SubprocessID));
+                if (idx !== -1) subprocesses[idx] = saved;
+                else subprocesses.unshift(saved);
+            } else {
+                // Insertar el nuevo al inicio para que se vea inmediatamente
+                subprocesses.unshift(saved);
             }
+
+            renderSubprocesses();
+        } else {
+            // Si no hay objeto completo retornado, recargar desde DB para asegurarnos de tener datos reales
+            await loadSubprocesses(departmentId);
         }
+
+        closeNewSubprocessModal();
+    } catch (error) {
+        console.error('Error al guardar subproceso:', error);
+        let errorMessage = 'Error al guardar subproceso';
+        if (error.response?.data?.message) {
+            errorMessage += ': ' + error.response.data.message;
+        } else if (error.message) {
+            errorMessage += ': ' + error.message;
+        }
+        showError(errorMessage);
+    }
+}
 
         // Success Notification
         function showSuccess(message = 'Operación completada exitosamente') {

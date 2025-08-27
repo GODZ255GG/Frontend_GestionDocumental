@@ -128,49 +128,8 @@
                             <i class="fas fa-upload mr-2"></i> Subir Archivo
                         </button>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div
-                            class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300">
-                            <div class="flex items-start">
-                                <div class="bg-blue-100 p-3 rounded-lg mr-3">
-                                    <i class="fas fa-file-word text-blue-600 text-xl"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="font-medium">Documento</div>
-                                    <div class="text-sm text-gray-500">v2.1 - 12/05/2023</div>
-                                    <div class="mt-2 flex space-x-2">
-                                        <button class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
-                                            <i class="fas fa-eye mr-1"></i> Ver
-                                        </button>
-                                        <button class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
-                                            <i class="fas fa-download mr-1"></i> Descargar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div
-                            class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300">
-                            <div class="flex items-start">
-                                <div class="bg-green-100 p-3 rounded-lg mr-3">
-                                    <i class="fas fa-file text-green-600 text-xl"></i>
-                                </div>
-                                <div>
-                                    <div class="font-medium">Diagrama de Flujo</div>
-                                    <div class="text-sm text-gray-500">v1.5 - 20/04/2023</div>
-                                    <div class="mt-2 flex space-x-2">
-                                        <button class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
-                                            <i class="fas fa-eye mr-1"></i> Ver
-                                        </button>
-                                        <button class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
-                                            <i class="fas fa-download mr-1"></i> Descargar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div id="archivosList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Tarjetas dinámicas se cargarán aquí con JS -->
                     </div>
                 </div>
             </main>
@@ -201,6 +160,13 @@
                                         <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Nombre
                                             *</label>
                                         <input type="text" id="title" name="title"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción
+                                            *</label>
+                                        <input type="text" id="description" name="description"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required>
                                     </div>
@@ -284,208 +250,460 @@
     </div>
 
     <script>
-        // === Utilidades ===
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Config global para llamadas API
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+         // estado para actualización
+         let currentUpdatingDocumentId = null;
+
+         // === Utilidades ===
+         function preventDefaults(e) {
+             e.preventDefault();
+             e.stopPropagation();
+         }
+
+         function openUploadModal() {
+             // abrir modal en modo "nuevo"
+             currentUpdatingDocumentId = null;
+             const header = document.querySelector('#uploadModal h3');
+             if (header) header.textContent = 'Nuevo Archivo';
+             document.getElementById('uploadModal').classList.remove('hidden');
+             const today = new Date();
+             const options = { year: 'numeric', month: 'long', day: 'numeric' };
+             document.getElementById('creationDate').value = today.toLocaleDateString('es-MX', options);
+         }
+
+         function closeUploadModal() {
+             document.getElementById('uploadModal').classList.add('hidden');
+             resetUploadForm();
+             currentUpdatingDocumentId = null;
+         }
+
+         function resetUploadForm() {
+             // <-- nombre correcto del form de carga
+             const form = document.getElementById('uploadForm');
+             if (form) form.reset();
+
+             // reset UI de archivo
+             const fileUploadArea = document.getElementById('fileUploadArea');
+             const fileInfo = document.getElementById('fileInfo');
+             const fileName = document.getElementById('fileName');
+             if (fileUploadArea && fileInfo) {
+                 fileUploadArea.classList.remove('hidden');
+                 fileInfo.classList.add('hidden');
+             }
+             if (fileName) fileName.textContent = '';
+         }
+
+         // === Drag & Drop + Selección de archivo ===
+         const fileInput = document.getElementById('file');
+         const fileUploadArea = document.getElementById('fileUploadArea');
+         const fileInfo = document.getElementById('fileInfo');
+         const fileName = document.getElementById('fileName');
+         const removeFileBtn = document.getElementById('removeFile');
+
+         if (fileInput) {
+             fileInput.addEventListener('change', (e) => {
+                 if (e.target.files.length > 0) {
+                     const file = e.target.files[0];
+                     if (file.size > 10 * 1024 * 1024) {
+                         alert('El archivo supera el límite de 10MB');
+                         fileInput.value = '';
+                         return;
+                     }
+                     if (fileName) fileName.textContent = file.name;
+                     if (fileUploadArea) fileUploadArea.classList.add('hidden');
+                     if (fileInfo) fileInfo.classList.remove('hidden');
+                 }
+             });
+         }
+
+         if (fileUploadArea) {
+             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                 fileUploadArea.addEventListener(eventName, preventDefaults, false);
+             });
+
+             fileUploadArea.addEventListener('drop', (e) => {
+                 const dt = e.dataTransfer;
+                 const files = dt && dt.files ? dt.files : null;
+                 if (!files || !files.length) return;
+
+                 const file = files[0];
+                 if (file.size > 10 * 1024 * 1024) {
+                     alert('El archivo supera el límite de 10MB');
+                     return;
+                 }
+                 if (fileInput) fileInput.files = files;
+
+                 if (fileName) fileName.textContent = file.name;
+                 fileUploadArea.classList.add('hidden');
+                 if (fileInfo) fileInfo.classList.remove('hidden');
+             });
+         }
+
+         if (removeFileBtn) {
+             removeFileBtn.addEventListener('click', (e) => {
+                 e.preventDefault();
+                 if (fileInput) fileInput.value = '';
+                 if (fileUploadArea) fileUploadArea.classList.remove('hidden');
+                 if (fileInfo) fileInfo.classList.add('hidden');
+                 if (fileName) fileName.textContent = '';
+             });
+         }
+
+         // === Subir documento / subir nueva versión (soporta actualización) ===
+         async function submitUploadForm() {
+             const token = localStorage.getItem('token');
+             const params = new URLSearchParams(window.location.search);
+             const procedureId = params.get('id');
+
+             const titleEl = document.getElementById('title');
+             const descEl = document.getElementById('description');
+             const fileEl = document.getElementById('file');
+
+             const title = titleEl ? titleEl.value.trim() : '';
+             const description = descEl ? descEl.value.trim() : '';
+             const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
+
+             // Si estamos actualizando, solo archivo es obligatorio
+             if (currentUpdatingDocumentId) {
+                 if (!file) { alert('Seleccione un archivo para subir la nueva versión.'); return; }
+             } else {
+                 if (!title || !file) { alert('Nombre y archivo son requeridos.'); return; }
+             }
+
+             // validaciones cliente
+             const ALLOWED_MIMES = new Set([
+                 'application/pdf',
+                 'application/msword',
+                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                 'image/jpeg',
+                 'image/png',
+                 'image/bmp',
+                 'image/webp'
+             ]);
+             const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
+             function isAllowedFile(f) { return ALLOWED_MIMES.has(f.type) || EXT_OK.test(f.name); }
+             if (file && !isAllowedFile(file)) { alert('Solo Word, PDF e imágenes.'); return; }
+             if (file && file.size > 10 * 1024 * 1024) { alert('El archivo supera 10MB.'); return; }
+
+             if (!token) { alert('No hay token en localStorage. Inicia sesión.'); return; }
+
+             try {
+                 // Si hay documento seleccionado para actualizar -> subir versión
+                 if (currentUpdatingDocumentId) {
+                     const fd = new FormData();
+                     fd.append('file', file);
+                     if (description) fd.append('description', description);
+                     const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
+                         method: 'POST',
+                         headers: { 'Authorization': `Bearer ${token}` },
+                         body: fd
+                     });
+                     const versionText = await versionResp.text().catch(()=>'');
+                     if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
+
+                     const notification = document.getElementById('successNotificationVersion');
+                     if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
+                     closeUploadModal();
+                     setTimeout(()=>loadArchivos(), 500);
+                     return;
+                 }
+
+                 // flujo normal: crear nuevo documento + subir versión + asociar
+                 // 1) Crear documento
+                 const createResp = await fetch(`${API_BASE_URL}/documents`, {
+                     method: 'POST',
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify({ name: title, description })
+                 });
+
+                 const createText = await createResp.text().catch(()=>'');
+                 if (!createResp.ok) {
+                     throw new Error(`Error creando documento: ${createText || createResp.status}`);
+                 }
+                 let created;
+                 try { created = createText ? JSON.parse(createText) : null; } catch { created = createText; }
+                 const documentId = created?.documentId || created?.id || created?._id;
+                 if (!documentId) throw new Error('documentId no retornado por el backend');
+
+                 // 2) Subir versión
+                 const fd = new FormData();
+                 fd.append('file', file);
+                 const versionResp = await fetch(`${API_BASE_URL}/documents/${documentId}/versions`, {
+                     method: 'POST',
+                     headers: { 'Authorization': `Bearer ${token}` }, // no Content-Type
+                     body: fd
+                 });
+                 const versionText = await versionResp.text().catch(()=>'');
+                 if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
+
+                 // 3) Asociar documento al procedimiento si procedureId existe
+                 if (procedureId) {
+                     const candidateEndpoints = [
+                         `${API_BASE_URL}/procedures/${procedureId}/documents`,
+                         `${API_BASE_URL}/procedimientos/${procedureId}/documents`
+                     ];
+                     let associated = false;
+                     for (const url of candidateEndpoints) {
+                         try {
+                             const resp = await fetch(url, {
+                                 method: 'POST',
+                                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ documentId })
+                             });
+                             const text = await resp.text().catch(()=>'');
+                             if (resp.ok) { associated = true; console.log('Asociación OK en', url, text); break; }
+                             console.warn('Asociación falló en', url, resp.status, text);
+                         } catch (e) {
+                             console.warn('Error al intentar asociar en', url, e.message);
+                         }
+                     }
+                     if (!associated) console.warn('No se pudo asociar el documento al procedimiento. Revisa rutas/backend.');
+                 }
+
+                 // UI success
+                 const notification = document.getElementById('successNotification');
+                 if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
+                 closeUploadModal();
+                 setTimeout(()=>loadArchivos(), 500);
+             } catch (err) {
+                 console.error(err);
+                 alert(err.message || 'Error desconocido al subir el archivo');
+             }
+         }
+
+       // cerrar notificaciones (usado por botones de UI)
+        function closeNotification() {
+           const n1 = document.getElementById('successNotification');
+            const n2 = document.getElementById('successNotificationVersion');
+            if (n1) n1.classList.add('hidden');
+            if (n2) n2.classList.add('hidden');
         }
 
-        function openUploadModal() {
-            document.getElementById('uploadModal').classList.remove('hidden');
-            const today = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('creationDate').value = today.toLocaleDateString('es-MX', options);
-        }
+         // === Botones varios que podrían no existir en este HTML (evita errores) ===
+         const toggleSidebarBtn = document.getElementById('toggleSidebar');
+         if (toggleSidebarBtn) {
+             toggleSidebarBtn.addEventListener('click', function () {
+                 document.querySelector('.sidebar').classList.toggle('sidebar-collapsed');
+             });
+         }
 
-        function closeUploadModal() {
-            document.getElementById('uploadModal').classList.add('hidden');
-            resetUploadForm();
-        }
+         // Exponer funciones que llamas desde el HTML inline
+         window.openUploadModal = openUploadModal;
+         window.closeUploadModal = closeUploadModal;
+         window.submitUploadForm = submitUploadForm;
+        window.closeNotification = closeNotification;
 
-        function resetUploadForm() {
-            // <-- nombre correcto del form de carga
-            const form = document.getElementById('uploadForm');
-            if (form) form.reset();
+        // --- CARGA Y RENDER DE ARCHIVOS ASOCIADOS AL PROCEDIMIENTO ---
+        async function loadArchivos() {
+            try {
+                const listEl = document.getElementById('archivosList');
+                if (!listEl) return;
 
-            // reset UI de archivo
-            const fileUploadArea = document.getElementById('fileUploadArea');
-            const fileInfo = document.getElementById('fileInfo');
-            const fileName = document.getElementById('fileName');
-            if (fileUploadArea && fileInfo) {
-                fileUploadArea.classList.remove('hidden');
-                fileInfo.classList.add('hidden');
-            }
-            if (fileName) fileName.textContent = '';
-        }
-
-        // === Drag & Drop + Selección de archivo ===
-        const fileInput = document.getElementById('file');
-        const fileUploadArea = document.getElementById('fileUploadArea');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const removeFileBtn = document.getElementById('removeFile');
-
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert('El archivo supera el límite de 10MB');
-                        fileInput.value = '';
-                        return;
-                    }
-                    if (fileName) fileName.textContent = file.name;
-                    if (fileUploadArea) fileUploadArea.classList.add('hidden');
-                    if (fileInfo) fileInfo.classList.remove('hidden');
-                }
-            });
-        }
-
-        if (fileUploadArea) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                fileUploadArea.addEventListener(eventName, preventDefaults, false);
-            });
-
-            fileUploadArea.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = dt && dt.files ? dt.files : null;
-                if (!files || !files.length) return;
-
-                const file = files[0];
-                if (file.size > 10 * 1024 * 1024) {
-                    alert('El archivo supera el límite de 10MB');
+                const params = new URLSearchParams(window.location.search);
+                const procedureId = params.get('id') || params.get('procedureId') || params.get('procedimientoId');
+                if (!procedureId) {
+                    listEl.innerHTML = '<p class="text-gray-500">No se encontró id de procedimiento en la URL.</p>';
                     return;
                 }
-                if (fileInput) fileInput.files = files;
 
-                if (fileName) fileName.textContent = file.name;
-                fileUploadArea.classList.add('hidden');
-                if (fileInfo) fileInfo.classList.remove('hidden');
-            });
-        }
+                const token = localStorage.getItem('token');
+                const candidateUrls = [
+                    `${API_BASE_URL}/procedures/${procedureId}/documents`,
+                    `${API_BASE_URL}/procedimientos/${procedureId}/documents`,
+                    `${API_BASE_URL}/documents?procedureId=${procedureId}`
+                ];
 
-        if (removeFileBtn) {
-            removeFileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (fileInput) fileInput.value = '';
-                if (fileUploadArea) fileUploadArea.classList.remove('hidden');
-                if (fileInfo) fileInfo.classList.add('hidden');
-                if (fileName) fileName.textContent = '';
-            });
-        }
-
-        // === Subir documento + versión 1 ===
-        async function submitUploadForm() {
-            const token = localStorage.getItem('token');
-            const params = new URLSearchParams(window.location.search);
-            const procedureId = params.get('id'); // si vas a asociar a un procedimiento
-
-            const titleEl = document.getElementById('title');
-            const fileEl = document.getElementById('file');
-            const title = titleEl ? titleEl.value.trim() : '';
-            const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
-
-            if (!title || !file) {
-                alert('Nombre y archivo son requeridos.');
-                return;
-            }
-
-            // Validación de archivo en cliente
-            const ALLOWED_MIMES = new Set([
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'image/jpeg',
-                'image/png',
-                'image/bmp',
-                'image/webp'
-            ]);
-            const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
-
-            function isAllowedFile(file) {
-                return ALLOWED_MIMES.has(file.type) || EXT_OK.test(file.name);
-            }
-
-            // En change / drop:
-            if (!isAllowedFile(file)) {
-                alert('Solo se permiten Word (.doc/.docx), PDF e imágenes (JPG/PNG/BMP/WEBP).');
-                fileInput.value = '';
-                return;
-            }
-
-            if (file.size > 10 * 1024 * 1024) {
-                alert('El archivo supera el límite de 10MB.');
-                fileInput.value = '';
-                return;
-            }
-
-            if (!token) {
-                alert('No hay token en localStorage. Inicia sesión.');
-                return;
-            }
-
-            try {
-                // 1) Crear documento
-                const createResp = await fetch('/api/documents', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: title, description: '' })
-                });
-                if (!createResp.ok) {
-                    const txt = await createResp.text();
-                    throw new Error(`Error creando documento: ${txt}`);
-                }
-                const created = await createResp.json();
-                const documentId = created.documentId;
-
-                // 2) Subir versión
-                const fd = new FormData();
-                fd.append('file', file);
-                const versionResp = await fetch(`/api/documents/${documentId}/versions`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: fd
-                });
-                if (!versionResp.ok) {
-                    const txt = await versionResp.text();
-                    throw new Error(`Error subiendo versión: ${txt}`);
+                let docs = [];
+                for (const url of candidateUrls) {
+                    try {
+                        const resp = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+                        if (!resp.ok) continue;
+                        const body = await resp.json().catch(()=>null);
+                        docs = body?.data || body || [];
+                        if (Array.isArray(docs)) break;
+                    } catch (e) {
+                        console.warn('fetch docs failed for', url, e.message);
+                    }
                 }
 
-                // 3) (Opcional) Asociar al procedimiento si tienes endpoint para ello:
-                // await fetch(`/api/procedures/${procedureId}/documents/${documentId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-
-                // Notificación de éxito
-                const notification = document.getElementById('successNotification');
-                if (notification) {
-                    notification.classList.remove('hidden');
-                    setTimeout(() => notification.classList.add('hidden'), 5000);
+                if (!Array.isArray(docs) || docs.length === 0) {
+                    listEl.innerHTML = '<p class="text-gray-500">No hay documentos asociados.</p>';
+                    return;
                 }
 
-                closeUploadModal();
-                // TODO: refrescar la lista de archivos si ya tienes endpoint
-                // await loadArchivos();
+                // Normalizar y renderizar con estilo parecido al ejemplo (añadido botón Actualizar)
+                listEl.innerHTML = docs.map(d => {
+                    const id = d.DocumentID || d.documentId || d.id || d.document_id || '';
+                    const name = d.Name || d.name || d.title || 'Documento';
+                    const version = d.VersionNumber || d.version || d.latestVersion || '';
+                    const created = d.CreatedAt || d.createdAt || d.created || '';
+                    const mime = d.MimeType || d.mimeType || d.mime || '';
+                    const iconClass = mime.includes('word') ? 'fa-file-word text-blue-600' : mime.includes('pdf') ? 'fa-file-pdf text-red-600' : 'fa-file text-green-600';
+
+                    return `
+                        <div class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300 bg-white">
+                          <div class="flex items-start">
+                            <div class="bg-gray-100 p-3 rounded-lg mr-3">
+                              <i class="fas ${iconClass} text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                              <div class="font-medium">${escapeHtml(name)}</div>
+                              <div class="text-sm text-gray-500">${escapeHtml(version ? `v${version}` : '')} ${created ? ' - ' + escapeHtml(created) : ''}</div>
+                              <div class="mt-2 flex space-x-2">
+                                <button onclick="verDocumento(${JSON.stringify(id)})" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
+                                  <i class="fas fa-eye mr-2"></i> Ver
+                                </button>
+                                <button onclick="descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})" class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
+                                  <i class="fas fa-download mr-2"></i> Descargar
+                                </button>
+                                <button onclick="openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})" class="text-xs px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center">
+                                  <i class="fas fa-sync-alt mr-2"></i> Actualizar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>`;
+                }).join('');
+
             } catch (err) {
-                console.error(err);
-                alert(err.message || 'Error desconocido al subir el archivo');
+                console.error('Error cargando archivos asociados:', err);
             }
         }
 
-        // === Botones varios que podrían no existir en este HTML (evita errores) ===
-        const toggleSidebarBtn = document.getElementById('toggleSidebar');
-        if (toggleSidebarBtn) {
-            toggleSidebarBtn.addEventListener('click', function () {
-                document.querySelector('.sidebar').classList.toggle('sidebar-collapsed');
-            });
+        // pequeño helper de escape
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
         }
 
-        // Exponer funciones que llamas desde el HTML inline
-        window.openUploadModal = openUploadModal;
-        window.closeUploadModal = closeUploadModal;
-        window.submitUploadForm = submitUploadForm;
-    </script>
+        // Abrir modal de actualización prellenando nombre
+        function openUpdateModal(documentId, name = '') {
+            currentUpdatingDocumentId = documentId;
+            const titleEl = document.getElementById('title');
+            const descEl = document.getElementById('description');
+            if (titleEl) titleEl.value = name || '';
+            if (descEl) descEl.value = '';
+            const header = document.querySelector('#uploadModal h3');
+            if (header) header.textContent = 'Actualizar Archivo';
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+
+        // VER: abrir en nueva pestaña la versión más reciente (intenta varios endpoints)
+        window.verDocumento = async (documentId, versionNumber = null) => {
+          try {
+            const BASE = API_BASE_URL;
+            const token = localStorage.getItem('token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const candidates = [];
+
+            if (versionNumber) {
+              candidates.push(`${BASE}/documents/${documentId}/versions/${versionNumber}`);
+            }
+            candidates.push(`${BASE}/documents/${documentId}/versions/latest`);
+            candidates.push(`${BASE}/documents/${documentId}/download`);
+            candidates.push(`${BASE}/documents/${documentId}/file`);
+
+            let resp;
+            for (const url of candidates) {
+              try {
+                resp = await fetch(url, { headers });
+                if (resp && resp.ok && resp.headers.get('content-type') && resp.headers.get('content-type').includes('application')) break;
+              } catch (e) {
+                resp = null;
+              }
+            }
+            if (!resp || !resp.ok) throw new Error('No se pudo obtener el archivo (404 o endpoint no disponible)');
+
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+          } catch (err) {
+            console.error('Error al ver documento:', err);
+            alert('No se pudo abrir el documento: ' + (err.message || 'error'));
+          }
+        };
+
+        // DESCARGAR mejorado: usar File System Access API si está disponible, fallback a anchor download
+        window.descargarDocumento = async (documentId, versionNumber = null, fallbackName = 'documento') => {
+          try {
+            const BASE = API_BASE_URL;
+            const token = localStorage.getItem('token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const candidates = [];
+
+            if (versionNumber) {
+              candidates.push(`${BASE}/documents/${documentId}/versions/${versionNumber}`);
+            }
+            candidates.push(`${BASE}/documents/${documentId}/download`);
+            candidates.push(`${BASE}/documents/${documentId}/versions/latest`);
+            candidates.push(`${BASE}/documents/${documentId}/file`);
+
+            let resp;
+            for (const url of candidates) {
+              try {
+                resp = await fetch(url, { headers });
+                if (resp && resp.ok) break;
+              } catch (e) {
+                resp = null;
+              }
+            }
+            if (!resp || !resp.ok) throw new Error('No se pudo descargar el archivo');
+
+            const blob = await resp.blob();
+            // intentar obtener filename desde Content-Disposition
+            let filename = fallbackName;
+            const disposition = resp.headers.get('content-disposition');
+            if (disposition) {
+              const m = /filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/.exec(disposition);
+              if (m && m[1]) filename = decodeURIComponent(m[1]);
+            }
+
+            // Si está disponible File System Access API, usarla para pedir ubicación al usuario
+            if (window.showSaveFilePicker) {
+              const opts = {
+                suggestedName: filename,
+                types: [{
+                  description: 'Archivo',
+                  accept: { [blob.type || 'application/octet-stream']: ['.' + (filename.split('.').pop() || '')] }
+                }]
+              };
+              const handle = await window.showSaveFilePicker(opts);
+              const writable = await handle.createWritable();
+              await writable.write(blob);
+              await writable.close();
+              return;
+            }
+
+            // Fallback: anchor download (abrirá diálogo según configuración del navegador)
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+          } catch (err) {
+            console.error('Error al descargar documento:', err);
+            alert('No se pudo descargar el documento: ' + (err.message || 'error'));
+          }
+        };
+
+        // refrescar lista después de subir un archivo exitosamente
+        const originalSubmitUploadForm = submitUploadForm;
+        window.submitUploadForm = async function () {
+            await originalSubmitUploadForm();
+            setTimeout(() => loadArchivos(), 500);
+        };
+
+        // Carga inicial de archivos al abrir la página
+        loadArchivos();
+     </script>
 
 </body>
 

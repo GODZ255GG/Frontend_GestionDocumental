@@ -382,9 +382,11 @@
                                         <select id="status" name="status"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required>
-                                            <option value="Draft">Borrador</option>
-                                            <option value="Active">Activo</option>
-                                            <option value="Pending">Pendiente</option>
+                                            <option value="Created">Creado</option>
++                                           <option value="In progress">En elaboración</option>
++                                           <option value="Under review">En revisión</option>
++                                           <option value="Published">Publicado</option>
++                                           <option value="Archived">Archivado</option>
                                         </select>
                                     </div>
                                 </form>
@@ -710,9 +712,9 @@
             if (!status) return '';
 
             const statusMap = {
-                'Draft': { class: 'status-draft', text: 'Borrador' },
-                'Active': { class: 'status-active', text: 'Activo' },
-                'Pending': { class: 'status-pending', text: 'Pendiente' },
+                'Draft': { class: 'status-draft', text: 'Creado' },
+                'Active': { class: 'status-active', text: 'En elaboración' },
+                'Pending': { class: 'status-pending', text: 'En revisión' },
                 'Archived': { class: 'status-archived', text: 'Archivado' }
             };
 

@@ -1,22 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const uploadButton = document.querySelector('#uploadButton'); // Botón "Subir Archivo" en sección Archivos
+  const uploadButton = document.querySelector('#uploadButton');
   const modal = document.querySelector('#uploadModal');
   const closeModal = document.querySelector('#closeModal');
   const cancelButton = document.querySelector('#cancelButton');
   const submitButton = document.querySelector('#submitButton');
   const nameInput = document.querySelector('#nameInput');
+  const descriptionInput = document.querySelector('#descriptionInput');
   const fileInput = document.querySelector('#fileInput');
   const dropZone = document.querySelector('#dropZone');
   const successModal = document.querySelector('#successModal');
   const closeSuccess = document.querySelector('#closeSuccess');
 
-  // Asume procedureId de URL params (ej. Procedimiento.html?id=1)
-  const urlParams = new URLSearchParams(window.location.search);
-  const procedureId = urlParams.get('id');
-  const token = localStorage.getItem('token'); // De login
+  // Guard: si no existe uploadButton, evitar crash y avisar
+  if (!uploadButton) {
+    console.warn('Upload button not found (#uploadButton). Verifica IDs en Procedimiento.html');
+    return;
+  }
 
-  if (!procedureId || !token) {
-    alert('Procedure ID o token no encontrado. Revisa login o URL.');
+  if (!modal || !fileInput) {
+    console.warn('Elementos esperados del modal no encontrados. Revisar Procedimiento.html');
     return;
   }
 
@@ -25,9 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.style.display = 'block';
   });
 
-  // Cerrar modal
-  closeModal.addEventListener('click', () => modal.style.display = 'none');
-  cancelButton.addEventListener('click', () => modal.style.display = 'none');
+  // Cerrar modal (guard checks)
+  if (closeModal) closeModal.addEventListener('click', () => modal.style.display = 'none');
+  if (cancelButton) cancelButton.addEventListener('click', () => modal.style.display = 'none');
   window.addEventListener('click', (e) => {
     if (e.target === modal) modal.style.display = 'none';
   });
@@ -56,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submit upload
   submitButton.addEventListener('click', async () => {
     const name = nameInput.value.trim();
+    const description = descriptionInput.value.trim() || '';
     const file = fileInput.files[0];
 
     if (!name || !file) {
@@ -63,16 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Validar tipos y tamaño (según tu HTML: PDF, DOCX, etc., up to 10MB)
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/png',
-      'image/bmp',
-      'image/webp'
-    ];
+    // Validar tipos y tamaño
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/bmp', 'image/webp'];
     const extOk = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i.test(file.name);
     if (!allowedTypes.includes(file.type) && !extOk) {
       alert('Solo Word, PDF e imágenes.');
@@ -84,18 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // Paso 1: Crear documento
-      const { documentId } = await DocumentoAPI.crear(name, '', token); // Description vacío por ahora
-
-      // Paso 2: Subir versión 1 con file
+      const { documentId } = await DocumentoAPI.crear(name, description, token);
       await DocumentoAPI.subirVersion(documentId, file, token);
-
-      // Paso 3: Asociar a procedure
       await ProcedimientoAPI.agregarDocumento(procedureId, documentId, token);
-
       modal.style.display = 'none';
-      successModal.style.display = 'block'; // Muestra modal éxito
-      loadArchivos(); // Recarga lista de archivos (implementa abajo)
+      successModal.style.display = 'block';
+      loadArchivos();
     } catch (error) {
       alert(`Error al subir: ${error.message}`);
     }
@@ -104,20 +93,33 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cerrar success modal
   closeSuccess.addEventListener('click', () => successModal.style.display = 'none');
 
-  // Función placeholder para recargar lista de archivos (agrega endpoint getDocumentsByProcedure en api.js si falta)
+  // Función para cargar y renderizar tarjetas dinámicas
   async function loadArchivos() {
     try {
-      const docs = await fetchAPI(`/procedimientos/${procedureId}/documents`, 'GET', null, token);
+      const docs = await ProcedimientoAPI.getDocumentsByProcedure(procedureId, token);
       const list = document.querySelector('#archivosList');
-      list.innerHTML = ''; // Limpia
+      list.innerHTML = '';
       docs.forEach(doc => {
+        const latestVersion = doc.VersionNumber || 1;
         const item = document.createElement('div');
+        item.className = 'document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300';
         item.innerHTML = `
-          <div class="archivo-item">
-            <h4>${doc.Name}</h4>
-            <p>v${doc.VersionNumber || 1} - ${doc.UpdatedAt}</p>
-            <button>Ver</button>
-            <button>Descargar</button>
+          <div class="flex items-start">
+            <div class="bg-blue-100 p-3 rounded-lg mr-3">
+              <i class="fas fa-file-word text-blue-600 text-xl"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium">${doc.Name}</div>
+              <div class="text-sm text-gray-500">v${latestVersion} - ${new Date(doc.UpdatedAt).toLocaleDateString()}</div>
+              <div class="mt-2 flex space-x-2">
+                <button onclick="verDocumento(${doc.DocumentID}, ${latestVersion})" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
+                  <i class="fas fa-eye mr-1"></i> Ver
+                </button>
+                <button onclick="descargarDocumento(${doc.DocumentID}, ${latestVersion}, '${doc.Name}')" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">
+                  <i class="fas fa-download mr-1"></i> Descargar
+                </button>
+              </div>
+            </div>
           </div>
         `;
         list.appendChild(item);
@@ -127,6 +129,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Carga inicial de archivos al load page
+  // Función para ver (open blob)
+  window.verDocumento = async (documentId, versionNumber) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/versions/${documentId}-${versionNumber}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Error al obtener documento');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error al ver: ' + error.message);
+    }
+  };
+
+  // Función para descargar
+  window.descargarDocumento = async (documentId, versionNumber, name) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/versions/${documentId}-${versionNumber}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Error al obtener documento');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `V${versionNumber}_${name}.docx`;  // Ajusta ext
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error al descargar: ' + error.message);
+    }
+  };
+
+  // Carga inicial
   loadArchivos();
 });
