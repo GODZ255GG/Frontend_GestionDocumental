@@ -11,12 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const successModal = document.querySelector('#successModal');
   const closeSuccess = document.querySelector('#closeSuccess');
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const procedureId = urlParams.get('id');
-  const token = localStorage.getItem('token');
+  // Guard: si no existe uploadButton, evitar crash y avisar
+  if (!uploadButton) {
+    console.warn('Upload button not found (#uploadButton). Verifica IDs en Procedimiento.html');
+    return;
+  }
 
-  if (!procedureId || !token) {
-    alert('Procedure ID o token no encontrado. Revisa login o URL.');
+  if (!modal || !fileInput) {
+    console.warn('Elementos esperados del modal no encontrados. Revisar Procedimiento.html');
     return;
   }
 
@@ -25,9 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.style.display = 'block';
   });
 
-  // Cerrar modal
-  closeModal.addEventListener('click', () => modal.style.display = 'none');
-  cancelButton.addEventListener('click', () => modal.style.display = 'none');
+  // Cerrar modal (guard checks)
+  if (closeModal) closeModal.addEventListener('click', () => modal.style.display = 'none');
+  if (cancelButton) cancelButton.addEventListener('click', () => modal.style.display = 'none');
   window.addEventListener('click', (e) => {
     if (e.target === modal) modal.style.display = 'none';
   });
