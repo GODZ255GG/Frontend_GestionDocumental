@@ -84,10 +84,14 @@
 
         <div class="flex-1 flex flex-col overflow-hidden">
             <header class="bg-white shadow-sm">
-                <div class="flex items-center justify-between p-4">
+                <div class="flex items-center p-4">
+                    <a href="#" id="backButton" class="mr-4 text-gray-600 hover:text-gray-800 focus:outline-none">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
                     <h1 id="pageHeader" class="text-2xl font-bold text-gray-800"></h1>
                 </div>
             </header>
+
 
             <main class="flex-1 overflow-y-auto p-6">
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -483,6 +487,11 @@
             if (!procedure) {
                 document.getElementById('pageHeader').textContent = 'Procedimiento no encontrado';
                 return;
+            }
+            // Actualizar el enlace del botón de regreso para que vuelva al subproceso correcto
+            const backButton = document.getElementById('backButton');
+            if (backButton && procedure.SubprocessID) {
+                backButton.href = `Procedimientos.html?subprocessId=${procedure.SubprocessID}`;
             }
 
             // --- Lógica correcta ---

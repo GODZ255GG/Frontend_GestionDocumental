@@ -219,7 +219,10 @@
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Navigation -->
             <header class="bg-white shadow-sm">
-                <div class="flex items-center justify-between p-4">
+                <div class="flex items-center p-4">
+                    <a href="http://127.0.0.1:5501/Sistema/SubProcesos.html?departmentId=1" class="mr-4 text-gray-600 hover:text-gray-800 focus:outline-none">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
                     <h1 class="text-2xl font-bold text-gray-800" id="pageTitle">Procedimientos</h1>
                 </div>
             </header>
@@ -604,7 +607,6 @@
                             </div>
                             <div class="min-w-0">
                                 <h3 class="font-medium text-gray-800">${proc.Title}</h3>
-                                <p class="text-xs text-gray-500">${proc.documentCount || '0'} documentos</p>
                             </div>
                         </div>
                         <div class="flex space-x-2" onclick="event.stopPropagation()">
@@ -625,7 +627,7 @@
                             ${getStatusBadge(proc.Status)}
                             <div class="text-sm text-gray-500">
                                 <i class="fas fa-file-alt mr-1"></i>
-                                <span>${proc.documentCount || '0'} Documentos</span>
+
                             </div>
                         </div>
                         <div class="flex items-center text-sm text-gray-500">
