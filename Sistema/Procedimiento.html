@@ -103,7 +103,7 @@
                                 <div class="flex items-center">
                                     <img src="https://randomuser.me/api/portraits/women/45.jpg" alt="Responsable"
                                         class="h-8 w-8 rounded-full mr-2">
-                                    <span id="responsibleName">Dra. Alessandra</span>
+                                    <span id="responsibleName"></span>
                                 </div>
                             </div>
                         </div>
@@ -463,32 +463,46 @@
 
        // ... (resto de tus funciones, como closeNotification, openUpdateModal, etc.)
        async function loadProcedureInfo(procedureId) {
-            try {
-                const response = await fetch(`http://localhost:3000/api/procedures/${procedureId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                if (!response.ok) throw new Error('Error al cargar información del procedimiento');
-
-                const procedure = await response.json();
-
-                // Actualizar dinámicamente el header y la descripción con la info del PROCEDIMIENTO
-                document.getElementById('pageHeader').textContent = procedure.Title || '';
-                document.getElementById('subprocessDescription').textContent = procedure.Description || '';
-                
-                // Asignar el responsable (usando un placeholder, ya que el código no lo hace dinámico)
-                const responsibleSpan = document.querySelector('#responsibleName');
-                if (responsibleSpan) {
-                    responsibleSpan.textContent = procedure.ResponsibleName || 'Sin responsable';
+        try {
+            const response = await fetch(`http://localhost:3000/api/procedures/${procedureId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
+            });
 
-            } catch (error) {
-                console.error('Error al cargar información del procedimiento:', error);
-                throw error;
+            if (!response.ok) {
+                // Si hay un error, el sistema se detiene aquí y muestra el error.
+                throw new Error('Error al cargar información del procedimiento');
             }
+
+            const procedure = await response.json();
+
+            // Si no se encuentra el procedimiento, puedes manejar el caso.
+            if (!procedure) {
+                document.getElementById('pageHeader').textContent = 'Procedimiento no encontrado';
+                return;
+            }
+
+            // --- Lógica correcta ---
+            // 1. Actualizar la cabecera y la descripción.
+            document.getElementById('pageHeader').textContent = procedure.Title || '';
+            document.getElementById('subprocessDescription').textContent = procedure.Description || '';
+
+            // 2. Obtener el elemento del responsable UNA SOLA VEZ.
+            const responsibleSpan = document.querySelector('#responsibleName');
+
+            // 3. Asignar el texto del responsable si el elemento existe.
+            if (responsibleSpan) {
+                responsibleSpan.textContent = procedure.ResponsibleName || 'Sin responsable';
+            }
+            // --- Fin de la lógica correcta ---
+
+        } catch (error) {
+            console.error('Error al cargar información del procedimiento:', error);
+            document.getElementById('pageHeader').textContent = 'Error';
+            document.getElementById('subprocessDescription').textContent = 'Error al cargar los datos. Por favor, reinicie el servidor.';
         }
+    }
 
         // --- CARGA Y RENDER DE ARCHIVOS ASOCIADOS AL PROCEDIMIENTO ---
         async function loadArchivos() {
