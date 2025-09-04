@@ -52,7 +52,6 @@
 
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
         <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
             <div class="p-4 flex items-center justify-between border-b border-blue-700">
                 <div class="flex items-center">
@@ -83,43 +82,36 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Navigation -->
             <header class="bg-white shadow-sm">
                 <div class="flex items-center justify-between p-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Reclutamiento de Personal Por Obra y Tiempo Determinado
-                        (Eventual)</h1>
+                    <h1 id="pageHeader" class="text-2xl font-bold text-gray-800"></h1>
                 </div>
             </header>
 
-            <!-- Content -->
             <main class="flex-1 overflow-y-auto p-6">
-                <!-- Document Details -->
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Document Info -->
                         <div class="col-span-2">
                             <div class="mb-4">
                                 <h3 class="font-semibold mb-2">Descripción</h3>
-                                <p class="text-gray-700">Este procedimiento describe el proceso completo para la
-                                    contratación de nuevo personal en la institución, incluyendo requisitos, etapas de
-                                    selección y documentación necesaria.</p>
+                                <p id="subprocessDescription" class="text-gray-700"></p>
                             </div>
 
                             <div class="mb-4">
                                 <h3 class="font-semibold mb-2">Responsable</h3>
                                 <div class="flex items-center">
-                                    <img src="https://randomuser.me/api/portraits/women/45.jpg" alt="Responsable"
-                                        class="h-8 w-8 rounded-full mr-2">
-                                    <span>Dra. Alessandra</span>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user-circle text-gray-400 text-2xl mr-2"></i>
+                                        <span id="responsibleName"></span>
+                                    </div>
+                                    <span id="responsibleName"></span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Related Documents -->
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                         <h3 class="font-semibold mb-4">Archivos</h3>
@@ -129,14 +121,12 @@
                         </button>
                     </div>
                     <div id="archivosList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- Tarjetas dinámicas se cargarán aquí con JS -->
-                    </div>
+                        </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Upload Document Modal -->
     <div id="uploadModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" aria-hidden="true">
@@ -197,7 +187,6 @@
                                                     Solo Word (.doc, .docx), PDF e Imágenes (JPG, PNG, BMP, WEBP) hasta
                                                     10 MB
                                                 </p>
-
                                             </div>
                                         </div>
                                         <div id="fileInfo" class="hidden mt-2 text-sm text-gray-600">
@@ -227,7 +216,6 @@
         </div>
     </div>
 
-    <!-- Success Notification -->
     <div id="successNotification" class="fixed bottom-4 right-4 hidden">
         <div class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
@@ -238,7 +226,6 @@
         </div>
     </div>
 
-    <!-- Success Notification -->
     <div id="successNotificationVersion" class="fixed bottom-4 right-4 hidden">
         <div class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
@@ -253,250 +240,271 @@
         // Config global para llamadas API
         const API_BASE_URL = 'http://localhost:3000/api';
 
-         // estado para actualización
-         let currentUpdatingDocumentId = null;
+        // estado para actualización
+        let currentUpdatingDocumentId = null;
 
-         // === Utilidades ===
-         function preventDefaults(e) {
-             e.preventDefault();
-             e.stopPropagation();
-         }
-
-         function openUploadModal() {
-             // abrir modal en modo "nuevo"
-             currentUpdatingDocumentId = null;
-             const header = document.querySelector('#uploadModal h3');
-             if (header) header.textContent = 'Nuevo Archivo';
-             document.getElementById('uploadModal').classList.remove('hidden');
-             const today = new Date();
-             const options = { year: 'numeric', month: 'long', day: 'numeric' };
-             document.getElementById('creationDate').value = today.toLocaleDateString('es-MX', options);
-         }
-
-         function closeUploadModal() {
-             document.getElementById('uploadModal').classList.add('hidden');
-             resetUploadForm();
-             currentUpdatingDocumentId = null;
-         }
-
-         function resetUploadForm() {
-             // <-- nombre correcto del form de carga
-             const form = document.getElementById('uploadForm');
-             if (form) form.reset();
-
-             // reset UI de archivo
-             const fileUploadArea = document.getElementById('fileUploadArea');
-             const fileInfo = document.getElementById('fileInfo');
-             const fileName = document.getElementById('fileName');
-             if (fileUploadArea && fileInfo) {
-                 fileUploadArea.classList.remove('hidden');
-                 fileInfo.classList.add('hidden');
-             }
-             if (fileName) fileName.textContent = '';
-         }
-
-         // === Drag & Drop + Selección de archivo ===
-         const fileInput = document.getElementById('file');
-         const fileUploadArea = document.getElementById('fileUploadArea');
-         const fileInfo = document.getElementById('fileInfo');
-         const fileName = document.getElementById('fileName');
-         const removeFileBtn = document.getElementById('removeFile');
-
-         if (fileInput) {
-             fileInput.addEventListener('change', (e) => {
-                 if (e.target.files.length > 0) {
-                     const file = e.target.files[0];
-                     if (file.size > 10 * 1024 * 1024) {
-                         alert('El archivo supera el límite de 10MB');
-                         fileInput.value = '';
-                         return;
-                     }
-                     if (fileName) fileName.textContent = file.name;
-                     if (fileUploadArea) fileUploadArea.classList.add('hidden');
-                     if (fileInfo) fileInfo.classList.remove('hidden');
-                 }
-             });
-         }
-
-         if (fileUploadArea) {
-             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                 fileUploadArea.addEventListener(eventName, preventDefaults, false);
-             });
-
-             fileUploadArea.addEventListener('drop', (e) => {
-                 const dt = e.dataTransfer;
-                 const files = dt && dt.files ? dt.files : null;
-                 if (!files || !files.length) return;
-
-                 const file = files[0];
-                 if (file.size > 10 * 1024 * 1024) {
-                     alert('El archivo supera el límite de 10MB');
-                     return;
-                 }
-                 if (fileInput) fileInput.files = files;
-
-                 if (fileName) fileName.textContent = file.name;
-                 fileUploadArea.classList.add('hidden');
-                 if (fileInfo) fileInfo.classList.remove('hidden');
-             });
-         }
-
-         if (removeFileBtn) {
-             removeFileBtn.addEventListener('click', (e) => {
-                 e.preventDefault();
-                 if (fileInput) fileInput.value = '';
-                 if (fileUploadArea) fileUploadArea.classList.remove('hidden');
-                 if (fileInfo) fileInfo.classList.add('hidden');
-                 if (fileName) fileName.textContent = '';
-             });
-         }
-
-         // === Subir documento / subir nueva versión (soporta actualización) ===
-         async function submitUploadForm() {
-             const token = localStorage.getItem('token');
-             const params = new URLSearchParams(window.location.search);
-             const procedureId = params.get('id');
-
-             const titleEl = document.getElementById('title');
-             const descEl = document.getElementById('description');
-             const fileEl = document.getElementById('file');
-
-             const title = titleEl ? titleEl.value.trim() : '';
-             const description = descEl ? descEl.value.trim() : '';
-             const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
-
-             // Si estamos actualizando, solo archivo es obligatorio
-             if (currentUpdatingDocumentId) {
-                 if (!file) { alert('Seleccione un archivo para subir la nueva versión.'); return; }
-             } else {
-                 if (!title || !file) { alert('Nombre y archivo son requeridos.'); return; }
-             }
-
-             // validaciones cliente
-             const ALLOWED_MIMES = new Set([
-                 'application/pdf',
-                 'application/msword',
-                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                 'image/jpeg',
-                 'image/png',
-                 'image/bmp',
-                 'image/webp'
-             ]);
-             const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
-             function isAllowedFile(f) { return ALLOWED_MIMES.has(f.type) || EXT_OK.test(f.name); }
-             if (file && !isAllowedFile(file)) { alert('Solo Word, PDF e imágenes.'); return; }
-             if (file && file.size > 10 * 1024 * 1024) { alert('El archivo supera 10MB.'); return; }
-
-             if (!token) { alert('No hay token en localStorage. Inicia sesión.'); return; }
-
-             try {
-                 // Si hay documento seleccionado para actualizar -> subir versión
-                 if (currentUpdatingDocumentId) {
-                     const fd = new FormData();
-                     fd.append('file', file);
-                     if (description) fd.append('description', description);
-                     const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
-                         method: 'POST',
-                         headers: { 'Authorization': `Bearer ${token}` },
-                         body: fd
-                     });
-                     const versionText = await versionResp.text().catch(()=>'');
-                     if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
-
-                     const notification = document.getElementById('successNotificationVersion');
-                     if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
-                     closeUploadModal();
-                     setTimeout(()=>loadArchivos(), 500);
-                     return;
-                 }
-
-                 // flujo normal: crear nuevo documento + subir versión + asociar
-                 // 1) Crear documento
-                 const createResp = await fetch(`${API_BASE_URL}/documents`, {
-                     method: 'POST',
-                     headers: {
-                         'Authorization': `Bearer ${token}`,
-                         'Content-Type': 'application/json'
-                     },
-                     body: JSON.stringify({ name: title, description })
-                 });
-
-                 const createText = await createResp.text().catch(()=>'');
-                 if (!createResp.ok) {
-                     throw new Error(`Error creando documento: ${createText || createResp.status}`);
-                 }
-                 let created;
-                 try { created = createText ? JSON.parse(createText) : null; } catch { created = createText; }
-                 const documentId = created?.documentId || created?.id || created?._id;
-                 if (!documentId) throw new Error('documentId no retornado por el backend');
-
-                 // 2) Subir versión
-                 const fd = new FormData();
-                 fd.append('file', file);
-                 const versionResp = await fetch(`${API_BASE_URL}/documents/${documentId}/versions`, {
-                     method: 'POST',
-                     headers: { 'Authorization': `Bearer ${token}` }, // no Content-Type
-                     body: fd
-                 });
-                 const versionText = await versionResp.text().catch(()=>'');
-                 if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
-
-                 // 3) Asociar documento al procedimiento si procedureId existe
-                 if (procedureId) {
-                     const candidateEndpoints = [
-                         `${API_BASE_URL}/procedures/${procedureId}/documents`,
-                         `${API_BASE_URL}/procedimientos/${procedureId}/documents`
-                     ];
-                     let associated = false;
-                     for (const url of candidateEndpoints) {
-                         try {
-                             const resp = await fetch(url, {
-                                 method: 'POST',
-                                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                 body: JSON.stringify({ documentId })
-                             });
-                             const text = await resp.text().catch(()=>'');
-                             if (resp.ok) { associated = true; console.log('Asociación OK en', url, text); break; }
-                             console.warn('Asociación falló en', url, resp.status, text);
-                         } catch (e) {
-                             console.warn('Error al intentar asociar en', url, e.message);
-                         }
-                     }
-                     if (!associated) console.warn('No se pudo asociar el documento al procedimiento. Revisa rutas/backend.');
-                 }
-
-                 // UI success
-                 const notification = document.getElementById('successNotification');
-                 if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
-                 closeUploadModal();
-                 setTimeout(()=>loadArchivos(), 500);
-             } catch (err) {
-                 console.error(err);
-                 alert(err.message || 'Error desconocido al subir el archivo');
-             }
-         }
-
-       // cerrar notificaciones (usado por botones de UI)
-        function closeNotification() {
-           const n1 = document.getElementById('successNotification');
-            const n2 = document.getElementById('successNotificationVersion');
-            if (n1) n1.classList.add('hidden');
-            if (n2) n2.classList.add('hidden');
+        // === Utilidades ===
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
 
-         // === Botones varios que podrían no existir en este HTML (evita errores) ===
-         const toggleSidebarBtn = document.getElementById('toggleSidebar');
-         if (toggleSidebarBtn) {
-             toggleSidebarBtn.addEventListener('click', function () {
-                 document.querySelector('.sidebar').classList.toggle('sidebar-collapsed');
-             });
-         }
+        function openUploadModal() {
+            // abrir modal en modo "nuevo"
+            currentUpdatingDocumentId = null;
+            const header = document.querySelector('#uploadModal h3');
+            if (header) header.textContent = 'Nuevo Archivo';
+            document.getElementById('uploadModal').classList.remove('hidden');
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('creationDate').value = today.toLocaleDateString('es-MX', options);
+        }
 
-         // Exponer funciones que llamas desde el HTML inline
-         window.openUploadModal = openUploadModal;
-         window.closeUploadModal = closeUploadModal;
-         window.submitUploadForm = submitUploadForm;
-        window.closeNotification = closeNotification;
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+            resetUploadForm();
+            currentUpdatingDocumentId = null;
+        }
+
+        function resetUploadForm() {
+            // <-- nombre correcto del form de carga
+            const form = document.getElementById('uploadForm');
+            if (form) form.reset();
+
+            // reset UI de archivo
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            if (fileUploadArea && fileInfo) {
+                fileUploadArea.classList.remove('hidden');
+                fileInfo.classList.add('hidden');
+            }
+            if (fileName) fileName.textContent = '';
+        }
+
+        // === Drag & Drop + Selección de archivo ===
+        const fileInput = document.getElementById('file');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFile');
+
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert('El archivo supera el límite de 10MB');
+                        fileInput.value = '';
+                        return;
+                    }
+                    if (fileName) fileName.textContent = file.name;
+                    if (fileUploadArea) fileUploadArea.classList.add('hidden');
+                    if (fileInfo) fileInfo.classList.remove('hidden');
+                }
+            });
+        }
+
+        if (fileUploadArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileUploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            fileUploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt && dt.files ? dt.files : null;
+                if (!files || !files.length) return;
+
+                const file = files[0];
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('El archivo supera el límite de 10MB');
+                    return;
+                }
+                if (fileInput) fileInput.files = files;
+
+                if (fileName) fileName.textContent = file.name;
+                fileUploadArea.classList.add('hidden');
+                if (fileInfo) fileInfo.classList.remove('hidden');
+            });
+        }
+
+        if (removeFileBtn) {
+            removeFileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (fileInput) fileInput.value = '';
+                if (fileUploadArea) fileUploadArea.classList.remove('hidden');
+                if (fileInfo) fileInfo.classList.add('hidden');
+                if (fileName) fileName.textContent = '';
+            });
+        }
+
+        // === Subir documento / subir nueva versión (soporta actualización) ===
+        async function submitUploadForm() {
+            const token = localStorage.getItem('token');
+            const params = new URLSearchParams(window.location.search);
+            const procedureId = params.get('id');
+
+            const titleEl = document.getElementById('title');
+            const descEl = document.getElementById('description');
+            const fileEl = document.getElementById('file');
+
+            const title = titleEl ? titleEl.value.trim() : '';
+            const description = descEl ? descEl.value.trim() : '';
+            const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
+
+            // Si estamos actualizando, solo archivo es obligatorio
+            if (currentUpdatingDocumentId) {
+                if (!file) { alert('Seleccione un archivo para subir la nueva versión.'); return; }
+            } else {
+                if (!title || !file) { alert('Nombre y archivo son requeridos.'); return; }
+            }
+
+            // validaciones cliente
+            const ALLOWED_MIMES = new Set([
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg',
+                'image/png',
+                'image/bmp',
+                'image/webp'
+            ]);
+            const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
+            function isAllowedFile(f) { return ALLOWED_MIMES.has(f.type) || EXT_OK.test(f.name); }
+            if (file && !isAllowedFile(file)) { alert('Solo Word, PDF e imágenes.'); return; }
+            if (file && file.size > 10 * 1024 * 1024) { alert('El archivo supera 10MB.'); return; }
+
+            if (!token) { alert('No hay token en localStorage. Inicia sesión.'); return; }
+
+            try {
+                // Si hay documento seleccionado para actualizar -> subir versión
+                if (currentUpdatingDocumentId) {
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    if (description) fd.append('description', description);
+                    const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }, // Elimina el Content-Type para FormData
+                        body: fd
+                    });
+                    const versionText = await versionResp.text().catch(()=>'');
+                    if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
+
+                    const notification = document.getElementById('successNotificationVersion');
+                    if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
+                    closeUploadModal();
+                    setTimeout(()=>loadArchivos(), 500);
+                    return;
+                }
+
+                // flujo normal: crear nuevo documento + subir versión + asociar
+                // 1) Crear documento
+                const createResp = await fetch(`${API_BASE_URL}/documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: title, description })
+                });
+
+                const createText = await createResp.text().catch(()=>'');
+                if (!createResp.ok) {
+                    throw new Error(`Error creando documento: ${createText || createResp.status}`);
+                }
+                let created;
+                try { created = createText ? JSON.parse(createText) : null; } catch { created = createText; }
+                const documentId = created?.documentId || created?.id || created?._id;
+                if (!documentId) throw new Error('documentId no retornado por el backend');
+
+                // 2) Subir versión
+                const fd = new FormData();
+                fd.append('file', file);
+                const versionResp = await fetch(`${API_BASE_URL}/documents/${documentId}/versions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }, // no Content-Type
+                    body: fd
+                });
+                const versionText = await versionResp.text().catch(()=>'');
+                if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
+
+                // 3) Asociar documento al procedimiento si procedureId existe
+                if (procedureId) {
+                    const candidateEndpoints = [
+                        `${API_BASE_URL}/procedures/${procedureId}/documents`,
+                        `${API_BASE_URL}/procedimientos/${procedureId}/documents`
+                    ];
+                    let associated = false;
+                    for (const url of candidateEndpoints) {
+                        try {
+                            const resp = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ documentId })
+                            });
+                            const text = await resp.text().catch(()=>'');
+                            if (resp.ok) { associated = true; console.log('Asociación OK en', url, text); break; }
+                            console.warn('Asociación falló en', url, resp.status, text);
+                        } catch (e) {
+                            console.warn('Error al intentar asociar en', url, e.message);
+                        }
+                    }
+                    if (!associated) console.warn('No se pudo asociar el documento al procedimiento. Revisa rutas/backend.');
+                }
+
+                // UI success
+                const notification = document.getElementById('successNotification');
+                if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
+                closeUploadModal();
+                setTimeout(()=>loadArchivos(), 500);
+            } catch (err) {
+                console.error(err);
+                alert(err.message || 'Error desconocido al subir el archivo');
+            }
+        }
+
+       // ... (resto de tus funciones, como closeNotification, openUpdateModal, etc.)
+       async function loadProcedureInfo(procedureId) {
+        try {
+            const response = await fetch(`http://localhost:3000/api/procedures/${procedureId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                // Si hay un error, el sistema se detiene aquí y muestra el error.
+                throw new Error('Error al cargar información del procedimiento');
+            }
+
+            const procedure = await response.json();
+
+            // Si no se encuentra el procedimiento, puedes manejar el caso.
+            if (!procedure) {
+                document.getElementById('pageHeader').textContent = 'Procedimiento no encontrado';
+                return;
+            }
+
+            // --- Lógica correcta ---
+            // 1. Actualizar la cabecera y la descripción.
+            document.getElementById('pageHeader').textContent = procedure.Title || '';
+            document.getElementById('subprocessDescription').textContent = procedure.Description || '';
+
+            // 2. Obtener el elemento del responsable UNA SOLA VEZ.
+            const responsibleSpan = document.querySelector('#responsibleName');
+
+            // 3. Asignar el texto del responsable si el elemento existe.
+            if (responsibleSpan) {
+                responsibleSpan.textContent = procedure.ResponsibleName || 'Sin responsable';
+            }
+            // --- Fin de la lógica correcta ---
+
+        } catch (error) {
+            console.error('Error al cargar información del procedimiento:', error);
+            document.getElementById('pageHeader').textContent = 'Error';
+            document.getElementById('subprocessDescription').textContent = 'Error al cargar los datos. Por favor, reinicie el servidor.';
+        }
+    }
 
         // --- CARGA Y RENDER DE ARCHIVOS ASOCIADOS AL PROCEDIMIENTO ---
         async function loadArchivos() {
@@ -505,76 +513,130 @@
                 if (!listEl) return;
 
                 const params = new URLSearchParams(window.location.search);
-                const procedureId = params.get('id') || params.get('procedureId') || params.get('procedimientoId');
+                const procedureId = params.get('id');
                 if (!procedureId) {
                     listEl.innerHTML = '<p class="text-gray-500">No se encontró id de procedimiento en la URL.</p>';
                     return;
                 }
 
                 const token = localStorage.getItem('token');
-                const candidateUrls = [
-                    `${API_BASE_URL}/procedures/${procedureId}/documents`,
-                    `${API_BASE_URL}/procedimientos/${procedureId}/documents`,
-                    `${API_BASE_URL}/documents?procedureId=${procedureId}`
-                ];
-
-                let docs = [];
-                for (const url of candidateUrls) {
-                    try {
-                        const resp = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-                        if (!resp.ok) continue;
-                        const body = await resp.json().catch(()=>null);
-                        docs = body?.data || body || [];
-                        if (Array.isArray(docs)) break;
-                    } catch (e) {
-                        console.warn('fetch docs failed for', url, e.message);
-                    }
+                if (!token) {
+                    listEl.innerHTML = '<p class="text-gray-500">No estás autenticado.</p>';
+                    return;
                 }
-
+                
+                // Petición a una sola URL que sabemos que existe en tu backend
+                const url = `http://localhost:3000/api/procedures/${procedureId}/documents`;
+                
+                const resp = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!resp.ok) {
+                    const errorBody = await resp.text();
+                    throw new Error(`Error ${resp.status}: ${errorBody || resp.statusText}`);
+                }
+                
+                const docs = await resp.json();
+                
                 if (!Array.isArray(docs) || docs.length === 0) {
-                    listEl.innerHTML = '<p class="text-gray-500">No hay documentos asociados.</p>';
+                    listEl.innerHTML = '<p class="text-gray-500">No hay documentos asociados a este procedimiento.</p>';
                     return;
                 }
 
-                // Normalizar y renderizar con estilo parecido al ejemplo (añadido botón Actualizar)
-                listEl.innerHTML = docs.map(d => {
-                    const id = d.DocumentID || d.documentId || d.id || d.document_id || '';
-                    const name = d.Name || d.name || d.title || 'Documento';
-                    const version = d.VersionNumber || d.version || d.latestVersion || '';
-                    const created = d.CreatedAt || d.createdAt || d.created || '';
-                    const mime = d.MimeType || d.mimeType || d.mime || '';
-                    const iconClass = mime.includes('word') ? 'fa-file-word text-blue-600' : mime.includes('pdf') ? 'fa-file-pdf text-red-600' : 'fa-file text-green-600';
-
-                    return `
-                        <div class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300 bg-white">
-                          <div class="flex items-start">
-                            <div class="bg-gray-100 p-3 rounded-lg mr-3">
-                              <i class="fas ${iconClass} text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                              <div class="font-medium">${escapeHtml(name)}</div>
-                              <div class="text-sm text-gray-500">${escapeHtml(version ? `v${version}` : '')} ${created ? ' - ' + escapeHtml(created) : ''}</div>
-                              <div class="mt-2 flex space-x-2">
-                                <button onclick="verDocumento(${JSON.stringify(id)})" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
-                                  <i class="fas fa-eye mr-2"></i> Ver
-                                </button>
-                                <button onclick="descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})" class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
-                                  <i class="fas fa-download mr-2"></i> Descargar
-                                </button>
-                                <button onclick="openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})" class="text-xs px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center">
-                                  <i class="fas fa-sync-alt mr-2"></i> Actualizar
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>`;
-                }).join('');
-
+                // Si hay documentos, los renderiza
+                renderArchivos(docs, listEl);
+                
             } catch (err) {
                 console.error('Error cargando archivos asociados:', err);
+                const listEl = document.getElementById('archivosList');
+                if (listEl) {
+                    listEl.innerHTML = `<p class="text-red-500">Hubo un problema al cargar los archivos: ${err.message}</p>`;
+                }
             }
         }
+        
+        function renderArchivos(docs, listEl) {
+  listEl.innerHTML = docs.map(d => {
+    const id = d.DocumentID || d.documentId || d.id || d.document_id || '';
+    const name = d.Name || d.name || d.title || 'Documento';
+    const version = d.VersionNumber || d.version || d.latestVersion || '';
+    const created = d.CreatedAt || d.createdAt || d.created || '';
+    const mime = d.MimeType || d.mimeType || d.mime || '';
+    const iconClass = mime.includes('word')
+      ? 'fa-file-word text-blue-600'
+      : mime.includes('pdf')
+      ? 'fa-file-pdf text-red-600'
+      : 'fa-file text-green-600';
 
+    return `
+      <div class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300 bg-white">
+        <div class="flex items-start">
+          <div class="bg-gray-100 p-3 rounded-lg mr-3">
+            <i class="fas ${iconClass} text-xl"></i>
+          </div>
+          <div class="flex-1">
+            <div class="font-medium">${escapeHtml(name)}</div>
+            <div class="text-sm text-gray-500">
+              ${escapeHtml(version ? `v${version}` : '')}
+              ${created ? ' - ' + escapeHtml(created) : ''}
+            </div>
+            <div class="mt-2 flex space-x-2">
+              <button onclick="verDocumento(${JSON.stringify(id)})"
+                class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
+                <i class="fas fa-eye mr-2"></i> Ver
+              </button>
+              <button onclick="descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})"
+                class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
+                <i class="fas fa-download mr-2"></i> Descargar
+              </button>
+              <button onclick="openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})"
+                class="text-xs px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> Actualizar
+              </button>
+              <!-- NUEVO: botón Eliminar -->
+              <button onclick="eliminarDocumento(${JSON.stringify(id)})"
+                class="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition flex items-center">
+                <i class="fas fa-trash mr-2"></i> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* NUEVO: función para eliminar documento */
+async function eliminarDocumento(documentId) {
+  const token = localStorage.getItem('token');
+  if (!token) { alert('No estás autenticado.'); return; }
+
+  const ok = confirm('¿Eliminar este documento? Se borrarán todas sus versiones y relaciones.');
+  if (!ok) return;
+
+  try {
+    const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(text || `Error ${resp.status} al eliminar`);
+    }
+
+    // opcional: mostrar mensaje corto
+    // const data = await resp.json().catch(()=>null); console.log(data);
+
+    // refrescar la lista
+    loadArchivos();
+  } catch (err) {
+    console.error('Eliminar documento:', err);
+    alert('No se pudo eliminar: ' + (err.message || 'Error desconocido'));
+  }
+}
+
+        
         // pequeño helper de escape
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -593,40 +655,32 @@
         }
 
         // VER: abrir en nueva pestaña la versión más reciente (intenta varios endpoints)
-        window.verDocumento = async (documentId, versionNumber = null) => {
-          try {
-            const BASE = API_BASE_URL;
-            const token = localStorage.getItem('token');
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const candidates = [];
+       window.verDocumento = async (documentId) => {
+            try {
+                const BASE = 'http://localhost:3000/api';
+                const token = localStorage.getItem('token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-            if (versionNumber) {
-              candidates.push(`${BASE}/documents/${documentId}/versions/${versionNumber}`);
+                // Llama a la nueva ruta de visualización
+                const url = `${BASE}/documents/${documentId}/view`;
+
+                // ... el resto de la lógica es la misma
+                const resp = await fetch(url, { headers });
+
+                if (!resp.ok) {
+                    throw new Error(`Error ${resp.status}: No se pudo obtener el archivo`);
+                }
+
+                const blob = await resp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                window.open(blobUrl, '_blank');
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+
+            } catch (err) {
+                console.error('Error al ver documento:', err);
+                alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
             }
-            candidates.push(`${BASE}/documents/${documentId}/versions/latest`);
-            candidates.push(`${BASE}/documents/${documentId}/download`);
-            candidates.push(`${BASE}/documents/${documentId}/file`);
-
-            let resp;
-            for (const url of candidates) {
-              try {
-                resp = await fetch(url, { headers });
-                if (resp && resp.ok && resp.headers.get('content-type') && resp.headers.get('content-type').includes('application')) break;
-              } catch (e) {
-                resp = null;
-              }
-            }
-            if (!resp || !resp.ok) throw new Error('No se pudo obtener el archivo (404 o endpoint no disponible)');
-
-            const blob = await resp.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            window.open(blobUrl, '_blank');
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-          } catch (err) {
-            console.error('Error al ver documento:', err);
-            alert('No se pudo abrir el documento: ' + (err.message || 'error'));
-          }
-        };
+       };
 
         // DESCARGAR mejorado: usar File System Access API si está disponible, fallback a anchor download
         window.descargarDocumento = async (documentId, versionNumber = null, fallbackName = 'documento') => {
@@ -702,9 +756,17 @@
         };
 
         // Carga inicial de archivos al abrir la página
-        loadArchivos();
-     </script>
+        window.addEventListener('DOMContentLoaded', () => {
+          const params = new URLSearchParams(window.location.search);
+          const procedureId = params.get('id');
 
+          if (procedureId) {
+              loadProcedureInfo(procedureId);
+              loadArchivos(procedureId);
+          }
+        });
+        
+    </script>
 </body>
 
 </html>
