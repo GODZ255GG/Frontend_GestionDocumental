@@ -590,20 +590,20 @@
                         ${escapeHtml(version ? `v${version}` : '')}
                         ${created ? ' - ' + escapeHtml(created) : ''}
                         </div>
-                        <div class="mt-2 flex flex-wrap gap-2">
+                        <div class="mt-2 flex space-x-2">
                         <button onclick="verDocumento(${JSON.stringify(id)})"
                             class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
                             <i class="fas fa-eye mr-2"></i> Ver
+                       <button type="button"
+                        onclick='console.log("[DL click] id=", ${JSON.stringify(id)}, "name=", ${JSON.stringify(name)}); descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})'
+                        class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
+                        <i class="fas fa-download mr-2"></i> Descargar
                         </button>
-                        <button onclick="descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})"
-                            class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
-                            <i class="fas fa-download mr-2"></i> Descargar
-                        </button>
-                        <button onclick="openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})"
+
+                        <button onclick='openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})'
                             class="text-xs px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center">
                             <i class="fas fa-sync-alt mr-2"></i> Actualizar
                         </button>
-                        <!-- NUEVO: botón Eliminar -->
                         <button onclick="eliminarDocumento(${JSON.stringify(id)})"
                             class="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition flex items-center">
                             <i class="fas fa-trash mr-2"></i> Eliminar
@@ -613,7 +613,7 @@
                     </div>
                 </div>`;
             }).join('');
-        }
+            }
 
 /* NUEVO: función para eliminar documento */
 async function eliminarDocumento(documentId) {
@@ -692,70 +692,48 @@ async function eliminarDocumento(documentId) {
        };
 
         // DESCARGAR mejorado: usar File System Access API si está disponible, fallback a anchor download
-        window.descargarDocumento = async (documentId, versionNumber = null, fallbackName = 'documento') => {
-          try {
-            const BASE = API_BASE_URL;
-            const token = localStorage.getItem('token');
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const candidates = [];
+    window.descargarDocumento = async (documentId, _unused = null, fallbackName = 'documento') => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('No estás autenticado.'); return; }
 
-            if (versionNumber) {
-              candidates.push(`${BASE}/documents/${documentId}/versions/${versionNumber}`);
-            }
-            candidates.push(`${BASE}/documents/${documentId}/download`);
-            candidates.push(`${BASE}/documents/${documentId}/versions/latest`);
-            candidates.push(`${BASE}/documents/${documentId}/file`);
+    const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/download`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!resp.ok) throw new Error(await resp.text().catch(()=>`Error ${resp.status} al descargar`));
 
-            let resp;
-            for (const url of candidates) {
-              try {
-                resp = await fetch(url, { headers });
-                if (resp && resp.ok) break;
-              } catch (e) {
-                resp = null;
-              }
-            }
-            if (!resp || !resp.ok) throw new Error('No se pudo descargar el archivo');
+    const blob = await resp.blob();
 
-            const blob = await resp.blob();
-            // intentar obtener filename desde Content-Disposition
-            let filename = fallbackName;
-            const disposition = resp.headers.get('content-disposition');
-            if (disposition) {
-              const m = /filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/.exec(disposition);
-              if (m && m[1]) filename = decodeURIComponent(m[1]);
-            }
+    let filename = fallbackName || 'archivo';
+    const cd = resp.headers.get('content-disposition'); // requiere exposed headers
+    if (cd) {
+      const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')?([^;]+)/i.exec(cd);
+      const plain = /filename\s*=\s*"?([^;"']+)"?/i.exec(cd);
+      const raw = (star && star[1]) || (plain && plain[1]);
+      if (raw) filename = decodeURIComponent(raw.trim());
+    }
+    if (!/\.[a-z0-9]+$/i.test(filename)) {
+      const m = {
+        'application/pdf': '.pdf',
+        'application/msword': '.doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'image/jpeg': '.jpg', 'image/png': '.png', 'image/bmp': '.bmp', 'image/webp': '.webp'
+      };
+      filename += m[blob.type] || '';
+    }
 
-            // Si está disponible File System Access API, usarla para pedir ubicación al usuario
-            if (window.showSaveFilePicker) {
-              const opts = {
-                suggestedName: filename,
-                types: [{
-                  description: 'Archivo',
-                  accept: { [blob.type || 'application/octet-stream']: ['.' + (filename.split('.').pop() || '')] }
-                }]
-              };
-              const handle = await window.showSaveFilePicker(opts);
-              const writable = await handle.createWritable();
-              await writable.write(blob);
-              await writable.close();
-              return;
-            }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  } catch (err) {
+    console.error('descargarDocumento:', err);
+    alert('No se pudo descargar el documento: ' + (err.message || 'Error desconocido'));
+  }
+};
 
-            // Fallback: anchor download (abrirá diálogo según configuración del navegador)
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 30000);
-          } catch (err) {
-            console.error('Error al descargar documento:', err);
-            alert('No se pudo descargar el documento: ' + (err.message || 'error'));
-          }
-        };
+
 
         // refrescar lista después de subir un archivo exitosamente
         const originalSubmitUploadForm = submitUploadForm;
