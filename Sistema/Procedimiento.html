@@ -92,7 +92,6 @@
                 </div>
             </header>
 
-
             <main class="flex-1 overflow-y-auto p-6">
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -101,7 +100,6 @@
                                 <h3 class="font-semibold mb-2">Descripción</h3>
                                 <p id="subprocessDescription" class="text-gray-700"></p>
                             </div>
-
                             <div class="mb-4">
                                 <h3 class="font-semibold mb-2">Responsable</h3>
                                 <div class="flex items-center">
@@ -125,7 +123,7 @@
                         </button>
                     </div>
                     <div id="archivosList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -356,158 +354,142 @@
 
         // === Subir documento / subir nueva versión (soporta actualización) ===
         async function submitUploadForm() {
-    const token = localStorage.getItem('token');
-    const params = new URLSearchParams(window.location.search);
-    const procedureId = params.get('id');
+            const token = localStorage.getItem('token');
+            const params = new URLSearchParams(window.location.search);
+            const procedureId = params.get('id');
 
-    const titleEl = document.getElementById('title');
-    const descEl = document.getElementById('description');
-    const statusEl = document.getElementById('status'); // <-- NUEVO: Obtener el elemento de estado
-    const fileEl = document.getElementById('file');
+            const titleEl = document.getElementById('title');
+            const descEl = document.getElementById('description');
+            const statusEl = document.getElementById('status');
+            const fileEl = document.getElementById('file');
 
-    const title = titleEl ? titleEl.value.trim() : '';
-    const description = descEl ? descEl.value.trim() : '';
-    const status = statusEl ? statusEl.value : 'Created'; // <-- NUEVO: Leer el valor del estado
-    const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
+            const title = titleEl ? titleEl.value.trim() : '';
+            const description = descEl ? descEl.value.trim() : '';
+            const status = statusEl ? statusEl.value : 'Created';
+            const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
 
-    if (!token) {
-        alert('No hay token en localStorage. Inicia sesión.');
-        return;
-    }
-
-    try {
-        let createdDocumentId;
-
-        // Si estamos actualizando un documento existente
-        if (currentUpdatingDocumentId) {
-            if (!file) {
-                alert('Seleccione un archivo para subir la nueva versión.');
+            if (!token) {
+                alert('No hay token en localStorage. Inicia sesión.');
                 return;
             }
-            const fd = new FormData();
-            fd.append('file', file);
-            if (description) fd.append('description', description);
-            
-            const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: fd
-            });
-            if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
 
-            // Actualizar el estado del documento principal si es necesario
-            if (status !== 'Created') {
-                await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: status })
-                });
-            }
-            
-            createdDocumentId = currentUpdatingDocumentId;
-        } else { // Si es un nuevo documento
-            if (!title || !file) {
-                alert('Nombre y archivo son requeridos.');
-                return;
-            }
-            
-            // 1) Crear el documento principal con el estado correcto
-            const createResp = await fetch(`${API_BASE_URL}/documents`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name: title, description: description, status: status })
-            });
+            try {
+                let createdDocumentId;
 
-            if (!createResp.ok) {
-                throw new Error(`Error creando documento: ${createResp.status}`);
-            }
-            const created = await createResp.json();
-            createdDocumentId = created?.documentId;
+                if (currentUpdatingDocumentId) {
+                    if (!file) {
+                        alert('Seleccione un archivo para subir la nueva versión.');
+                        return;
+                    }
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    if (description) fd.append('description', description);
+                    
+                    const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: fd
+                    });
+                    if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
 
-            // 2) Subir la primera versión del archivo
-            const fd = new FormData();
-            fd.append('file', file);
-            const versionResp = await fetch(`${API_BASE_URL}/documents/${createdDocumentId}/versions`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: fd
-            });
-            if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
+                    if (status !== 'Created') {
+                        await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}`, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: status })
+                        });
+                    }
+                    
+                    createdDocumentId = currentUpdatingDocumentId;
+                } else {
+                    if (!title || !file) {
+                        alert('Nombre y archivo son requeridos.');
+                        return;
+                    }
+                    
+                    const createResp = await fetch(`${API_BASE_URL}/documents`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: title, description: description, status: status })
+                    });
 
-            // 3) Asociar el documento al procedimiento
-            if (procedureId) {
-                await fetch(`${API_BASE_URL}/procedures/${procedureId}/documents`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentId: createdDocumentId })
-                });
-            }
-        }
+                    if (!createResp.ok) {
+                        throw new Error(`Error creando documento: ${createResp.status}`);
+                    }
+                    const created = await createResp.json();
+                    createdDocumentId = created?.documentId;
 
-        // Éxito:
-        closeUploadModal();
-        const notification = document.getElementById(currentUpdatingDocumentId ? 'successNotificationVersion' : 'successNotification');
-        if (notification) { notification.classList.remove('hidden'); }
-        setTimeout(() => loadArchivos(), 500);
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    const versionResp = await fetch(`${API_BASE_URL}/documents/${createdDocumentId}/versions`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: fd
+                    });
+                    if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
 
-    } catch (err) {
-        console.error(err);
-        alert(err.message || 'Error desconocido al subir el archivo');
-    }
-}
-
-       // ... (resto de tus funciones, como closeNotification, openUpdateModal, etc.)
-       async function loadProcedureInfo(procedureId) {
-        try {
-            const response = await fetch(`http://localhost:3000/api/procedures/${procedureId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    if (procedureId) {
+                        await fetch(`${API_BASE_URL}/procedures/${procedureId}/documents`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documentId: createdDocumentId })
+                        });
+                    }
                 }
-            });
 
-            if (!response.ok) {
-                // Si hay un error, el sistema se detiene aquí y muestra el error.
-                throw new Error('Error al cargar información del procedimiento');
+                closeUploadModal();
+                const notification = document.getElementById(currentUpdatingDocumentId ? 'successNotificationVersion' : 'successNotification');
+                if (notification) { notification.classList.remove('hidden'); }
+                setTimeout(() => loadArchivos(), 500);
+
+            } catch (err) {
+                console.error(err);
+                alert(err.message || 'Error desconocido al subir el archivo');
             }
-
-            const procedure = await response.json();
-
-            // Si no se encuentra el procedimiento, puedes manejar el caso.
-            if (!procedure) {
-                document.getElementById('pageHeader').textContent = 'Procedimiento no encontrado';
-                return;
-            }
-            // Actualizar el enlace del botón de regreso para que vuelva al subproceso correcto
-            const backButton = document.getElementById('backButton');
-            if (backButton && procedure.SubprocessID) {
-                backButton.href = `Procedimientos.html?subprocessId=${procedure.SubprocessID}`;
-            }
-
-            // --- Lógica correcta ---
-            // 1. Actualizar la cabecera y la descripción.
-            document.getElementById('pageHeader').textContent = procedure.Title || '';
-            document.getElementById('subprocessDescription').textContent = procedure.Description || '';
-
-            // 2. Obtener el elemento del responsable UNA SOLA VEZ.
-            const responsibleSpan = document.querySelector('#responsibleName');
-
-            // 3. Asignar el texto del responsable si el elemento existe.
-            if (responsibleSpan) {
-                responsibleSpan.textContent = procedure.ResponsibleName || 'Sin responsable';
-            }
-            // --- Fin de la lógica correcta ---
-
-        } catch (error) {
-            console.error('Error al cargar información del procedimiento:', error);
-            document.getElementById('pageHeader').textContent = 'Error';
-            document.getElementById('subprocessDescription').textContent = 'Error al cargar los datos. Por favor, reinicie el servidor.';
         }
-    }
 
-        // --- CARGA Y RENDER DE ARCHIVOS ASOCIADOS AL PROCEDIMIENTO ---
+        async function loadProcedureInfo(procedureId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/procedures/${procedureId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar información del procedimiento');
+                }
+
+                const procedure = await response.json();
+
+                if (!procedure) {
+                    document.getElementById('pageHeader').textContent = 'Procedimiento no encontrado';
+                    return;
+                }
+                const backButton = document.getElementById('backButton');
+                if (backButton && procedure.SubprocessID) {
+                    backButton.href = `Procedimientos.html?subprocessId=${procedure.SubprocessID}`;
+                }
+
+                document.getElementById('pageHeader').textContent = procedure.Title || '';
+                document.getElementById('subprocessDescription').textContent = procedure.Description || '';
+
+                const responsibleSpan = document.querySelector('#responsibleName');
+
+                if (responsibleSpan) {
+                    responsibleSpan.textContent = procedure.ResponsibleName || 'Sin responsable';
+                }
+
+            } catch (error) {
+                console.error('Error al cargar información del procedimiento:', error);
+                document.getElementById('pageHeader').textContent = 'Error';
+                document.getElementById('subprocessDescription').textContent = 'Error al cargar los datos. Por favor, reinicie el servidor.';
+            }
+        }
+
         async function loadArchivos() {
             try {
                 const listEl = document.getElementById('archivosList');
@@ -526,7 +508,6 @@
                     return;
                 }
                 
-                // Petición a una sola URL que sabemos que existe en tu backend
                 const url = `http://localhost:3000/api/procedures/${procedureId}/documents`;
                 
                 const resp = await fetch(url, {
@@ -545,7 +526,6 @@
                     return;
                 }
 
-                // Si hay documentos, los renderiza
                 renderArchivos(docs, listEl);
                 
             } catch (err) {
@@ -557,6 +537,7 @@
             }
         }
         
+        // Función de renderizado de archivos corregida
         function renderArchivos(docs, listEl) {
             listEl.innerHTML = docs.map(d => {
                 const id = d.DocumentID || d.documentId || d.id || d.document_id || '';
@@ -565,85 +546,86 @@
                 const created = d.CreatedAt || d.createdAt || d.created || '';
                 const mime = d.MimeType || d.mimeType || d.mime || '';
                 const iconClass = mime.includes('word')
-                ? 'fa-file-word text-blue-600'
-                : mime.includes('pdf')
-                ? 'fa-file-pdf text-red-600'
-                : 'fa-file text-green-600';
+                    ? 'fa-file-word text-blue-600'
+                    : mime.includes('pdf')
+                    ? 'fa-file-pdf text-red-600'
+                    : 'fa-file text-green-600';
 
                 return `
                 <div class="document-card relative border rounded-lg p-4 hover:shadow-md transition-all duration-300 bg-white">
                     <div class="flex items-start">
-                    <div class="bg-gray-100 p-3 rounded-lg mr-3">
-                        <i class="fas ${iconClass} text-xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-medium">${escapeHtml(name)}</div>
-                        <div class="text-sm text-gray-500">
-                        ${escapeHtml(version ? `v${version}` : '')}
-                        ${created ? ' - ' + escapeHtml(created) : ''}
+                        <div class="bg-gray-100 p-3 rounded-lg mr-3">
+                            <i class="fas ${iconClass} text-xl"></i>
                         </div>
-                        <div class="mt-2 flex space-x-2">
-                        <button onclick="verDocumento(${JSON.stringify(id)})"
-                            class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
-                            <i class="fas fa-eye mr-2"></i> Ver
-                       <button type="button"
-                        onclick='console.log("[DL click] id=", ${JSON.stringify(id)}, "name=", ${JSON.stringify(name)}); descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})'
-                        class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
-                        <i class="fas fa-download mr-2"></i> Descargar
-                        </button>
+                        <div class="flex-1">
+                            <div class="font-medium">${escapeHtml(name)}</div>
+                            <div class="text-sm text-gray-500">
+                                ${escapeHtml(version ? `v${version}` : '')}
+                                ${created ? ' - ' + escapeHtml(created) : ''}
+                            </div>
+                            <div class="mt-2 flex space-x-2 items-center">
+                                <button onclick="verDocumento(${JSON.stringify(id)})"
+                                    class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center">
+                                    <i class="fas fa-eye mr-2"></i> Ver
+                                </button>
+                                <button type="button"
+                                    onclick='descargarDocumento(${JSON.stringify(id)}, null, ${JSON.stringify(name)})'
+                                    class="text-xs px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 transition flex items-center">
+                                    <i class="fas fa-download mr-2"></i> Descargar
+                                </button>
 
-                        <button onclick='openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})'
-                            class="text-xs px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center">
-                            <i class="fas fa-sync-alt mr-2"></i> Actualizar
-                        </button>
-                        <button onclick="eliminarDocumento(${JSON.stringify(id)})"
-                            class="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition flex items-center">
-                            <i class="fas fa-trash mr-2"></i> Eliminar
-                        </button>
+                                <div class="relative inline-block text-left">
+                                    <button type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-2 py-1 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="menu-button-${id}" aria-expanded="true" aria-haspopup="true">
+                                        <i class="fas fa-ellipsis-h text-lg text-gray-500"></i>
+                                    </button>
+
+                                    <div class="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" aria-labelledby="menu-button-${id}" tabindex="-1">
+                                        <div class="py-1" role="none">
+                                            <button onclick='openUpdateModal(${JSON.stringify(id)}, ${JSON.stringify(name)})' class="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100" role="menuitem" tabindex="-1">
+                                                <i class="fas fa-sync-alt mr-2 text-yellow-500"></i> Actualizar
+                                            </button>
+                                            <button onclick="eliminarDocumento(${JSON.stringify(id)})" class="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100" role="menuitem" tabindex="-1">
+                                                <i class="fas fa-trash mr-2 text-red-500"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        async function eliminarDocumento(documentId) {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('No estás autenticado.'); return; }
+
+            const ok = confirm('¿Eliminar este documento? Se borrarán todas sus versiones y relaciones.');
+            if (!ok) return;
+
+            try {
+                const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) {
+                    const text = await resp.text().catch(() => '');
+                    throw new Error(text || `Error ${resp.status} al eliminar`);
+                }
+
+                loadArchivos();
+            } catch (err) {
+                console.error('Eliminar documento:', err);
+                alert('No se pudo eliminar: ' + (err.message || 'Error desconocido'));
             }
-
-/* NUEVO: función para eliminar documento */
-async function eliminarDocumento(documentId) {
-  const token = localStorage.getItem('token');
-  if (!token) { alert('No estás autenticado.'); return; }
-
-  const ok = confirm('¿Eliminar este documento? Se borrarán todas sus versiones y relaciones.');
-  if (!ok) return;
-
-  try {
-    const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(text || `Error ${resp.status} al eliminar`);
-    }
-
-    // opcional: mostrar mensaje corto
-    // const data = await resp.json().catch(()=>null); console.log(data);
-
-    // refrescar la lista
-    loadArchivos();
-  } catch (err) {
-    console.error('Eliminar documento:', err);
-    alert('No se pudo eliminar: ' + (err.message || 'Error desconocido'));
-  }
-}
-
+        }
         
-        // pequeño helper de escape
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
         }
 
-        // Abrir modal de actualización prellenando nombre
         function openUpdateModal(documentId, name = '') {
             currentUpdatingDocumentId = documentId;
             const titleEl = document.getElementById('title');
@@ -655,17 +637,14 @@ async function eliminarDocumento(documentId) {
             document.getElementById('uploadModal').classList.remove('hidden');
         }
 
-        // VER: abrir en nueva pestaña la versión más reciente (intenta varios endpoints)
-       window.verDocumento = async (documentId) => {
+        window.verDocumento = async (documentId) => {
             try {
                 const BASE = 'http://localhost:3000/api';
                 const token = localStorage.getItem('token');
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-                // Llama a la nueva ruta de visualización
                 const url = `${BASE}/documents/${documentId}/view`;
 
-                // ... el resto de la lógica es la misma
                 const resp = await fetch(url, { headers });
 
                 if (!resp.ok) {
@@ -681,68 +660,79 @@ async function eliminarDocumento(documentId) {
                 console.error('Error al ver documento:', err);
                 alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
             }
-       };
+        };
 
-        // DESCARGAR mejorado: usar File System Access API si está disponible, fallback a anchor download
-    window.descargarDocumento = async (documentId, _unused = null, fallbackName = 'documento') => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) { alert('No estás autenticado.'); return; }
+        window.descargarDocumento = async (documentId, _unused = null, fallbackName = 'documento') => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) { alert('No estás autenticado.'); return; }
 
-    const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/download`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!resp.ok) throw new Error(await resp.text().catch(()=>`Error ${resp.status} al descargar`));
+                const resp = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/download`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!resp.ok) throw new Error(await resp.text().catch(()=>`Error ${resp.status} al descargar`));
 
-    const blob = await resp.blob();
+                const blob = await resp.blob();
 
-    let filename = fallbackName || 'archivo';
-    const cd = resp.headers.get('content-disposition'); // requiere exposed headers
-    if (cd) {
-      const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')?([^;]+)/i.exec(cd);
-      const plain = /filename\s*=\s*"?([^;"']+)"?/i.exec(cd);
-      const raw = (star && star[1]) || (plain && plain[1]);
-      if (raw) filename = decodeURIComponent(raw.trim());
-    }
-    if (!/\.[a-z0-9]+$/i.test(filename)) {
-      const m = {
-        'application/pdf': '.pdf',
-        'application/msword': '.doc',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-        'image/jpeg': '.jpg', 'image/png': '.png', 'image/bmp': '.bmp', 'image/webp': '.webp'
-      };
-      filename += m[blob.type] || '';
-    }
+                let filename = fallbackName || 'archivo';
+                const cd = resp.headers.get('content-disposition');
+                if (cd) {
+                    const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')?([^;]+)/i.exec(cd);
+                    const plain = /filename\s*=\s*"?([^;"']+)"?/i.exec(cd);
+                    const raw = (star && star[1]) || (plain && plain[1]);
+                    if (raw) filename = decodeURIComponent(raw.trim());
+                }
+                if (!/\.[a-z0-9]+$/i.test(filename)) {
+                    const m = {
+                        'application/pdf': '.pdf',
+                        'application/msword': '.doc',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                        'image/jpeg': '.jpg', 'image/png': '.png', 'image/bmp': '.bmp', 'image/webp': '.webp'
+                    };
+                    filename += m[blob.type] || '';
+                }
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
-  } catch (err) {
-    console.error('descargarDocumento:', err);
-    alert('No se pudo descargar el documento: ' + (err.message || 'Error desconocido'));
-  }
-};
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 30000);
+            } catch (err) {
+                console.error('descargarDocumento:', err);
+                alert('No se pudo descargar el documento: ' + (err.message || 'Error desconocido'));
+            }
+        };
 
-
-
-        // refrescar lista después de subir un archivo exitosamente
         const originalSubmitUploadForm = submitUploadForm;
         window.submitUploadForm = async function () {
             await originalSubmitUploadForm();
             setTimeout(() => loadArchivos(), 500);
         };
 
-        // Carga inicial de archivos al abrir la página
         window.addEventListener('DOMContentLoaded', () => {
-          const params = new URLSearchParams(window.location.search);
-          const procedureId = params.get('id');
+            const params = new URLSearchParams(window.location.search);
+            const procedureId = params.get('id');
 
-          if (procedureId) {
-              loadProcedureInfo(procedureId);
-              loadArchivos(procedureId);
-          }
+            if (procedureId) {
+                loadProcedureInfo(procedureId);
+                loadArchivos(procedureId);
+            }
+            
+            // Lógica para mostrar y ocultar el menú desplegable
+            document.addEventListener('click', (event) => {
+                const menuButtons = document.querySelectorAll('[id^="menu-button-"]');
+                menuButtons.forEach(button => {
+                    const menu = button.nextElementSibling;
+                    const isClickInsideButton = button.contains(event.target);
+                    const isClickInsideMenu = menu.contains(event.target);
+        
+                    if (isClickInsideButton) {
+                        menu.classList.toggle('hidden');
+                    } else if (!isClickInsideMenu) {
+                        menu.classList.add('hidden');
+                    }
+                });
+            });
         });
         
     </script>
