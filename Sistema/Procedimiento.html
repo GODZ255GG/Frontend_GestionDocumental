@@ -165,6 +165,18 @@
                                             required>
                                     </div>
                                     <div class="mb-4">
+                                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+                                        <select id="status" name="status"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                            <option value="Created">Creado</option>
+                                            <option value="In progress">En elaboración</option>
+                                            <option value="Under review">En revisión</option>
+                                            <option value="Published">Publicado</option>
+                                            <option value="Archived">Archivado</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-4">
                                         <label for="creationDate"
                                             class="block text-sm font-medium text-gray-700 mb-1">Fecha de
                                             Creación</label>
@@ -344,128 +356,108 @@
 
         // === Subir documento / subir nueva versión (soporta actualización) ===
         async function submitUploadForm() {
-            const token = localStorage.getItem('token');
-            const params = new URLSearchParams(window.location.search);
-            const procedureId = params.get('id');
+    const token = localStorage.getItem('token');
+    const params = new URLSearchParams(window.location.search);
+    const procedureId = params.get('id');
 
-            const titleEl = document.getElementById('title');
-            const descEl = document.getElementById('description');
-            const fileEl = document.getElementById('file');
+    const titleEl = document.getElementById('title');
+    const descEl = document.getElementById('description');
+    const statusEl = document.getElementById('status'); // <-- NUEVO: Obtener el elemento de estado
+    const fileEl = document.getElementById('file');
 
-            const title = titleEl ? titleEl.value.trim() : '';
-            const description = descEl ? descEl.value.trim() : '';
-            const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
+    const title = titleEl ? titleEl.value.trim() : '';
+    const description = descEl ? descEl.value.trim() : '';
+    const status = statusEl ? statusEl.value : 'Created'; // <-- NUEVO: Leer el valor del estado
+    const file = fileEl && fileEl.files.length ? fileEl.files[0] : null;
 
-            // Si estamos actualizando, solo archivo es obligatorio
-            if (currentUpdatingDocumentId) {
-                if (!file) { alert('Seleccione un archivo para subir la nueva versión.'); return; }
-            } else {
-                if (!title || !file) { alert('Nombre y archivo son requeridos.'); return; }
+    if (!token) {
+        alert('No hay token en localStorage. Inicia sesión.');
+        return;
+    }
+
+    try {
+        let createdDocumentId;
+
+        // Si estamos actualizando un documento existente
+        if (currentUpdatingDocumentId) {
+            if (!file) {
+                alert('Seleccione un archivo para subir la nueva versión.');
+                return;
             }
+            const fd = new FormData();
+            fd.append('file', file);
+            if (description) fd.append('description', description);
+            
+            const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
 
-            // validaciones cliente
-            const ALLOWED_MIMES = new Set([
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'image/jpeg',
-                'image/png',
-                'image/bmp',
-                'image/webp'
-            ]);
-            const EXT_OK = /\.(pdf|docx?|jpe?g|png|bmp|webp)$/i;
-            function isAllowedFile(f) { return ALLOWED_MIMES.has(f.type) || EXT_OK.test(f.name); }
-            if (file && !isAllowedFile(file)) { alert('Solo Word, PDF e imágenes.'); return; }
-            if (file && file.size > 10 * 1024 * 1024) { alert('El archivo supera 10MB.'); return; }
-
-            if (!token) { alert('No hay token en localStorage. Inicia sesión.'); return; }
-
-            try {
-                // Si hay documento seleccionado para actualizar -> subir versión
-                if (currentUpdatingDocumentId) {
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    if (description) fd.append('description', description);
-                    const versionResp = await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}/versions`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }, // Elimina el Content-Type para FormData
-                        body: fd
-                    });
-                    const versionText = await versionResp.text().catch(()=>'');
-                    if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
-
-                    const notification = document.getElementById('successNotificationVersion');
-                    if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
-                    closeUploadModal();
-                    setTimeout(()=>loadArchivos(), 500);
-                    return;
-                }
-
-                // flujo normal: crear nuevo documento + subir versión + asociar
-                // 1) Crear documento
-                const createResp = await fetch(`${API_BASE_URL}/documents`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: title, description })
+            // Actualizar el estado del documento principal si es necesario
+            if (status !== 'Created') {
+                await fetch(`${API_BASE_URL}/documents/${currentUpdatingDocumentId}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
                 });
+            }
+            
+            createdDocumentId = currentUpdatingDocumentId;
+        } else { // Si es un nuevo documento
+            if (!title || !file) {
+                alert('Nombre y archivo son requeridos.');
+                return;
+            }
+            
+            // 1) Crear el documento principal con el estado correcto
+            const createResp = await fetch(`${API_BASE_URL}/documents`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: title, description: description, status: status })
+            });
 
-                const createText = await createResp.text().catch(()=>'');
-                if (!createResp.ok) {
-                    throw new Error(`Error creando documento: ${createText || createResp.status}`);
-                }
-                let created;
-                try { created = createText ? JSON.parse(createText) : null; } catch { created = createText; }
-                const documentId = created?.documentId || created?.id || created?._id;
-                if (!documentId) throw new Error('documentId no retornado por el backend');
+            if (!createResp.ok) {
+                throw new Error(`Error creando documento: ${createResp.status}`);
+            }
+            const created = await createResp.json();
+            createdDocumentId = created?.documentId;
 
-                // 2) Subir versión
-                const fd = new FormData();
-                fd.append('file', file);
-                const versionResp = await fetch(`${API_BASE_URL}/documents/${documentId}/versions`, {
+            // 2) Subir la primera versión del archivo
+            const fd = new FormData();
+            fd.append('file', file);
+            const versionResp = await fetch(`${API_BASE_URL}/documents/${createdDocumentId}/versions`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionResp.status}`);
+
+            // 3) Asociar el documento al procedimiento
+            if (procedureId) {
+                await fetch(`${API_BASE_URL}/procedures/${procedureId}/documents`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }, // no Content-Type
-                    body: fd
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentId: createdDocumentId })
                 });
-                const versionText = await versionResp.text().catch(()=>'');
-                if (!versionResp.ok) throw new Error(`Error subiendo versión: ${versionText || versionResp.status}`);
-
-                // 3) Asociar documento al procedimiento si procedureId existe
-                if (procedureId) {
-                    const candidateEndpoints = [
-                        `${API_BASE_URL}/procedures/${procedureId}/documents`,
-                        `${API_BASE_URL}/procedimientos/${procedureId}/documents`
-                    ];
-                    let associated = false;
-                    for (const url of candidateEndpoints) {
-                        try {
-                            const resp = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ documentId })
-                            });
-                            const text = await resp.text().catch(()=>'');
-                            if (resp.ok) { associated = true; console.log('Asociación OK en', url, text); break; }
-                            console.warn('Asociación falló en', url, resp.status, text);
-                        } catch (e) {
-                            console.warn('Error al intentar asociar en', url, e.message);
-                        }
-                    }
-                    if (!associated) console.warn('No se pudo asociar el documento al procedimiento. Revisa rutas/backend.');
-                }
-
-                // UI success
-                const notification = document.getElementById('successNotification');
-                if (notification) { notification.classList.remove('hidden'); setTimeout(()=>notification.classList.add('hidden'),5000); }
-                closeUploadModal();
-                setTimeout(()=>loadArchivos(), 500);
-            } catch (err) {
-                console.error(err);
-                alert(err.message || 'Error desconocido al subir el archivo');
             }
         }
+
+        // Éxito:
+        closeUploadModal();
+        const notification = document.getElementById(currentUpdatingDocumentId ? 'successNotificationVersion' : 'successNotification');
+        if (notification) { notification.classList.remove('hidden'); }
+        setTimeout(() => loadArchivos(), 500);
+
+    } catch (err) {
+        console.error(err);
+        alert(err.message || 'Error desconocido al subir el archivo');
+    }
+}
 
        // ... (resto de tus funciones, como closeNotification, openUpdateModal, etc.)
        async function loadProcedureInfo(procedureId) {

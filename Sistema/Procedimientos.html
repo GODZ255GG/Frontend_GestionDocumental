@@ -184,7 +184,6 @@
 
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
         <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
             <div class="p-4 flex items-center justify-between border-b border-blue-700">
                 <div class="flex items-center">
@@ -197,15 +196,13 @@
                     <div class="text-blue-200 uppercase text-xs font-semibold mb-2 sidebar-text">Menú Principal</div>
                     <ul>
                         <li class="mb-2">
-                            <a href="MisProcedimientos.html"
-                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                            <a href="MisProcedimientos.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
                                 <i class="fas fa-file-pdf mr-3"></i>
                                 <span class="sidebar-text">Mis Procedimientos</span>
                             </a>
                         </li>
                         <li class="mb-2">
-                            <a href="Direcciones.html"
-                                class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
+                            <a href="Direcciones.html" class="flex items-center p-2 text-white hover-blue-700 rounded-lg">
                                 <i class="fa-regular fa-newspaper mr-3"></i>
                                 <span class="sidebar-text">Direcciones</span>
                             </a>
@@ -215,9 +212,7 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Navigation -->
             <header class="bg-white shadow-sm">
                 <div class="flex items-center p-4">
                     <a href="http://127.0.0.1:5501/Sistema/SubProcesos.html?departmentId=1" class="mr-4 text-gray-600 hover:text-gray-800 focus:outline-none">
@@ -228,7 +223,6 @@
             </header>
 
             <main class="flex-1 overflow-y-auto p-6">
-                <!-- Breadcrumb and Filter -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                     <div class="flex items-center text-sm text-gray-600 mb-3 md:mb-0">
                         <a href="Direcciones.html" class="text-blue-600 hover:underline">Direcciones</a>
@@ -239,8 +233,7 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <div class="relative">
-                            <select id="statusFilter"
-                                class="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <select id="statusFilter" class="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="">Todos los estados</option>
                                 <option value="Created">Creado</option>
                                 <option value="In progress">En elaboración</option>
@@ -248,24 +241,20 @@
                                 <option value="Published">Publicado</option>
                                 <option value="Archived">Archivado</option>
                             </select>
-                            <div
-                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                                 <i class="fas fa-chevron-down text-xs"></i>
                             </div>
                         </div>
-                        <button id="applyFilter"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm flex items-center">
+                        <button id="applyFilter" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm flex items-center">
                             <i class="fas fa-filter mr-1"></i>
                             <span>Filtrar</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Document Actions -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                     <div class="flex items-center space-x-4 mb-4 md:mb-0">
-                        <button id="btnNuevoProcedimiento" onclick="openUploadModal()"
-                            class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
+                        <button id="btnNuevoProcedimiento" onclick="openUploadModal()" class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
                             <i class="fas fa-plus"></i>
                             <span>Nuevo Procedimiento</span>
                         </button>
@@ -282,48 +271,37 @@
                     </div>
                 </div>
 
-                <!-- Procedure Grid View -->
                 <div id="gridView" class="document-grid">
-                    <!-- Los procedimientos se cargarán aquí dinámicamente -->
-                </div>
+                    </div>
 
-                <!-- Procedure List View (Hidden by default) -->
                 <div id="listView" class="hidden bg-white rounded-lg shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nombre</th>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Estado</th>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Responsable</th>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Última Modificación</th>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="listViewBody" class="bg-white divide-y divide-gray-200">
-                                <!-- Los procedimientos en vista de lista se cargarán aquí -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Loading State (Hidden by default) -->
                 <div id="loadingState" class="hidden col-span-full text-center py-8">
                     <i class="fas fa-spinner fa-spin text-blue-500 text-4xl mb-4"></i>
                     <p class="text-lg text-gray-700">Cargando procedimientos...</p>
                 </div>
 
-                <!-- Empty State (Hidden by default) -->
                 <div id="emptyState" class="hidden col-span-full text-center py-8">
                     <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
                     <p class="text-lg text-gray-700">No hay procedimientos en este subproceso</p>
@@ -331,13 +309,11 @@
                         Procedimiento"</p>
                 </div>
 
-                <!-- Error State (Hidden by default) -->
                 <div id="errorState" class="hidden col-span-full text-center py-8">
                     <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
                     <p class="text-lg text-gray-700">Error al cargar los procedimientos</p>
                     <p class="text-sm text-gray-500 mt-2" id="errorMessage">Por favor intente más tarde</p>
-                    <button onclick="loadProcedures()"
-                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    <button onclick="loadProcedures()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                         Reintentar
                     </button>
                 </div>
@@ -345,15 +321,13 @@
         </div>
     </div>
 
-    <!-- New Procedure Modal -->
     <div id="uploadModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" aria-hidden="true">
                 <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div
-                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
@@ -369,27 +343,21 @@
                                     <div class="mb-4">
                                         <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Título
                                             *</label>
-                                        <input type="text" id="title" name="title"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required>
+                                        <input type="text" id="title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
                                     </div>
                                     <div class="mb-4">
-                                        <label for="description"
-                                            class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                                        <textarea id="description" name="description" rows="3"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                        <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
                                     </div>
                                     <div class="mb-4">
                                         <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Estado
                                             *</label>
-                                        <select id="status" name="status"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required>
+                                        <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
                                             <option value="Created">Creado</option>
-+                                           <option value="In progress">En elaboración</option>
-+                                           <option value="Under review">En revisión</option>
-+                                           <option value="Published">Publicado</option>
-+                                           <option value="Archived">Archivado</option>
+                                            <option value="In progress">En elaboración</option>
+                                            <option value="Under review">En revisión</option>
+                                            <option value="Published">Publicado</option>
+                                            <option value="Archived">Archivado</option>
                                         </select>
                                     </div>
                                 </form>
@@ -398,12 +366,10 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="submitProcedureForm()"
-                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" onclick="submitProcedureForm()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
                         Guardar
                     </button>
-                    <button type="button" onclick="closeUploadModal()"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" onclick="closeUploadModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                         Cancelar
                     </button>
                 </div>
@@ -411,7 +377,6 @@
         </div>
     </div>
 
-    <!-- Success Notification -->
     <div id="successNotification" class="fixed bottom-4 right-4 hidden">
         <div class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
@@ -422,7 +387,6 @@
         </div>
     </div>
 
-    <!-- Error Notification -->
     <div id="errorNotification" class="fixed bottom-4 right-4 hidden">
         <div class="bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
             <i class="fas fa-exclamation-circle mr-2"></i>
@@ -468,7 +432,7 @@
         function setupEventListeners() {
             // Cambiar entre vistas (grid/list)
             document.querySelectorAll('.document-view-toggle').forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function() {
                     const view = this.getAttribute('data-view');
                     toggleView(view);
                 });
@@ -478,7 +442,7 @@
             document.getElementById('applyFilter').addEventListener('click', applyFilters);
 
             // Modal de nuevo procedimiento
-            document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            document.getElementById('uploadForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 submitProcedureForm();
             });
@@ -750,12 +714,26 @@
         async function submitProcedureForm() {
             const form = document.getElementById('uploadForm');
             const procedureId = form.procedureId ? form.procedureId.value : null;
+
+            // Obtener los valores del formulario
+            const title = form.title.value;
+            const description = form.description.value;
+            const status = form.status.value;
+
+            // Objeto de datos a enviar
             const formData = {
-                title: form.title.value,
-                description: form.description.value,
-                status: form.status.value,
+                title: title,
+                description: description,
+                status: status,
                 subprocessId: currentSubprocessId
             };
+
+            console.log('--- Depurando el envío del formulario ---');
+            console.log('Título:', title);
+            console.log('Descripción:', description);
+            console.log('Estado seleccionado (value):', status);
+            console.log('ID del subproceso:', currentSubprocessId);
+            console.log('-----------------------------------------');
 
             try {
                 let response;
