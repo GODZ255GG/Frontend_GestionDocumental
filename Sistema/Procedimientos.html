@@ -714,14 +714,15 @@
             if (!status) return '';
 
             const statusMap = {
-                'Draft': { class: 'status-draft', text: 'Creado' },
-                'Active': { class: 'status-active', text: 'En elaboración' },
-                'Pending': { class: 'status-pending', text: 'En revisión' },
-                'Archived': { class: 'status-archived', text: 'Archivado' }
+                'Created': { class: 'bg-yellow-200 text-yellow-800', text: 'EN ELABORACIÓN' },
+                'In progress': { class: 'bg-yellow-200 text-yellow-800', text: 'EN ELABORACIÓN' },
+                'Under review': { class: 'bg-green-200 text-green-800', text: 'EN REVISIÓN' },
+                'Published': { class: 'bg-blue-200 text-blue-800', text: 'PUBLICADO' },
+                'Archived': { class: 'bg-gray-200 text-gray-800', text: 'ARCHIVADO' }
             };
 
-            const statusInfo = statusMap[status] || { class: 'status-draft', text: status };
-            return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+            const statusInfo = statusMap[status] || { class: 'bg-gray-200 text-gray-800', text: 'Desconocido' };
+            return `<span class="px-2 py-1 rounded-md font-semibold text-xs ${statusInfo.class}">${statusInfo.text}</span>`;
         }
 
         function formatDate(dateString) {
