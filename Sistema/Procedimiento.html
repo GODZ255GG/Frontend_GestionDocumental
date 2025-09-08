@@ -637,30 +637,62 @@
             document.getElementById('uploadModal').classList.remove('hidden');
         }
 
-        window.verDocumento = async (documentId) => {
-            try {
-                const BASE = 'http://localhost:3000/api';
-                const token = localStorage.getItem('token');
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      window.verDocumento = async (documentId, fallbackName = 'documento') => {
+    try {
+        const BASE = 'http://localhost:3000/api';
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-                const url = `${BASE}/documents/${documentId}/view`;
+        const url = `${BASE}/documents/${documentId}/view`;
 
-                const resp = await fetch(url, { headers });
+        const resp = await fetch(url, { headers });
 
-                if (!resp.ok) {
-                    throw new Error(`Error ${resp.status}: No se pudo obtener el archivo`);
-                }
+        if (!resp.ok) {
+            throw new Error(`Error ${resp.status}: No se pudo obtener el archivo`);
+        }
 
-                const blob = await resp.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                window.open(blobUrl, '_blank');
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+        const blob = await resp.blob();
 
-            } catch (err) {
-                console.error('Error al ver documento:', err);
-                alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
-            }
-        };
+        // Determinar nombre del archivo
+        let filename = fallbackName;
+        const cd = resp.headers.get('content-disposition');
+        if (cd) {
+            const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')?([^;]+)/i.exec(cd);
+            const plain = /filename\s*=\s*"?([^;"']+)"?/i.exec(cd);
+            const raw = (star && star[1]) || (plain && plain[1]);
+            if (raw) filename = decodeURIComponent(raw.trim());
+        }
+
+        // Agregar extensión si no existe
+        if (!/\.[a-z0-9]+$/i.test(filename)) {
+            const m = {
+                'application/pdf': '.pdf',
+                'application/msword': '.doc',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                'image/jpeg': '.jpg',
+                'image/png': '.png',
+                'image/bmp': '.bmp',
+                'image/webp': '.webp'
+            };
+            filename += m[blob.type] || '';
+        }
+
+        // Crear enlace temporal para abrir
+        const urlBlob = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = urlBlob;
+        a.download = filename; // Esto permite que el nombre se sugiera al guardar
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(urlBlob), 30000);
+
+    } catch (err) {
+        console.error('Error al ver documento:', err);
+        alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
+    }
+};
+
 
         window.descargarDocumento = async (documentId, _unused = null, fallbackName = 'documento') => {
             try {
