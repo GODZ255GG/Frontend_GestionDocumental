@@ -163,18 +163,6 @@
                                             required>
                                     </div>
                                     <div class="mb-4">
-                                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
-                                        <select id="status" name="status"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required>
-                                            <option value="Created">Creado</option>
-                                            <option value="In progress">En elaboración</option>
-                                            <option value="Under review">En revisión</option>
-                                            <option value="Published">Publicado</option>
-                                            <option value="Archived">Archivado</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-4">
                                         <label for="creationDate"
                                             class="block text-sm font-medium text-gray-700 mb-1">Fecha de
                                             Creación</label>
@@ -637,30 +625,98 @@
             document.getElementById('uploadModal').classList.remove('hidden');
         }
 
-        window.verDocumento = async (documentId) => {
-            try {
-                const BASE = 'http://localhost:3000/api';
-                const token = localStorage.getItem('token');
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    window.verDocumento = async (documentId, fallbackName = 'documento') => {
+    try {
+        const BASE = 'http://localhost:3000/api';
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-                const url = `${BASE}/documents/${documentId}/view`;
+        const url = `${BASE}/documents/${documentId}/view`;
+        const resp = await fetch(url, { headers });
 
-                const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+            throw new Error(`Error ${resp.status}: No se pudo obtener el archivo`);
+        }
 
-                if (!resp.ok) {
-                    throw new Error(`Error ${resp.status}: No se pudo obtener el archivo`);
-                }
+        const blob = await resp.blob();
 
-                const blob = await resp.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                window.open(blobUrl, '_blank');
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+        // Determinar nombre del archivo
+        let filename = fallbackName;
+        const cd = resp.headers.get('content-disposition');
+        if (cd) {
+            const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')?([^;]+)/i.exec(cd);
+            const plain = /filename\s*=\s*"?([^;"']+)"?/i.exec(cd);
+            const raw = (star && star[1]) || (plain && plain[1]);
+            if (raw) filename = decodeURIComponent(raw.trim());
+        }
 
-            } catch (err) {
-                console.error('Error al ver documento:', err);
-                alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
+        // Agregar extensión si no existe
+        if (!/\.[a-z0-9]+$/i.test(filename)) {
+            const m = {
+                'application/pdf': '.pdf',
+                'application/msword': '.doc',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                'image/jpeg': '.jpg',
+                'image/png': '.png',
+                'image/bmp': '.bmp',
+                'image/webp': '.webp'
+            };
+            filename += m[blob.type] || '';
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Tipos visualizables en navegador
+        const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/bmp', 'image/webp'];
+
+        if (blob.type === 'application/msword' || blob.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            // Para .doc y .docx: descargar directamente con nombre correcto
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else if (viewableTypes.includes(blob.type)) {
+            // Para archivos visualizables: abrir en nueva pestaña
+            const newWin = window.open(blobUrl, '_blank');
+            if (!newWin) {
+                alert('No se pudo abrir el documento en nueva ventana. Revisa tu bloqueador de popups.');
             }
-        };
+
+            // Preparar enlace oculto para sugerir nombre al guardar
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+        } else {
+            // Otros tipos no visualizables: descargar
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        // Mantener el blob vivo un tiempo suficiente
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+
+    } catch (err) {
+        console.error('Error al ver documento:', err);
+        alert('No se pudo abrir el documento: ' + (err.message || 'Error desconocido'));
+    }
+};
+
+
+
+  
+
+
+
 
         window.descargarDocumento = async (documentId, _unused = null, fallbackName = 'documento') => {
             try {
