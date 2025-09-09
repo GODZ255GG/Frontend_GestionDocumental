@@ -183,6 +183,7 @@
 </head>
 
 <body class="bg-gray-50">
+    
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <div class="sidebar bg-blue-800 text-white w-64 flex-shrink-0">
@@ -225,6 +226,93 @@
             </header>
 
             <main class="flex-1 overflow-y-auto p-6">
+                <!-- Contenedor para la gráfica -->
+                <div class="mt-6 p-4 bg-white border rounded-xl shadow-sm max-w-lg mx-auto">
+                    <h2 class="text-lg font-bold text-gray-800 mb-3 text-center">
+                        Distribución de procedimientos por estado
+                    </h2>
+                    <canvas id="estadoChart" height="120"></canvas>
+                </div>
+
+
+                <!-- Librería Chart.js -->
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+                <script>
+                    function renderEstadoChart(procedures) {
+                    // Normalizamos estados
+                    const estados = procedures.map(p => toES(p.Status));
+
+                    // Contamos cada estado relevante
+                    const counts = {
+                        "Publicado": 0,
+                        "En revisión": 0,
+                        "En elaboración": 0 // usamos "Creado" -> "En elaboración"
+                    };
+
+                    estados.forEach(e => {
+                        const normalized = e.toLowerCase();
+
+                        if (normalized === "publicado" || normalized === "published") {
+                            counts["Publicado"]++;
+                        } 
+                        else if (normalized === "en revisión" || normalized === "under review") {
+                            counts["En revisión"]++;
+                        } 
+                        else if (normalized === "creado" || normalized === "created" || normalized === "in progress" || normalized === "en elaboración") {
+                            counts["En elaboración"]++;
+                        }
+                    });
+
+
+                    // Eliminamos gráfico previo si existe
+                    if (window.estadoChartInstance) {
+                        window.estadoChartInstance.destroy();
+                    }
+
+                    const ctx = document.getElementById("estadoChart").getContext("2d");
+                    window.estadoChartInstance = new Chart(ctx, {
+                        type: "doughnut",
+                        data: {
+                        labels: Object.keys(counts),
+                        datasets: [{
+                            data: Object.values(counts),
+                            backgroundColor: [
+                            "#3B82F6", // Azul -> Publicado
+                            "#10B981", // Verde -> En revisión
+                            "#FACC15"  // Amarillo -> En elaboración
+                            ],
+                            borderWidth: 1
+                        }]
+                        },
+                        options: {
+                        responsive: true,
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        plugins: {
+                            tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = total ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${value} (${pct}%)`;
+                                }
+                            }
+                            },
+                            legend: {
+                            position: "bottom"
+                            }
+                        }
+                        }
+                    });
+                    }
+
+                    
+                </script>
+
                 <div class="bg-white border border-gray-200 rounded-xl shadow-sm" id="card-mis-procedimientos">
                 <!-- Header + filtros -->
                 <div class="px-6 pt-6 pb-4">
@@ -442,7 +530,9 @@ function escapeHTML(str){
             showEmptyState();
             document.getElementById('tbodyProc').innerHTML = '';
             } else {
-            applyFiltersAndRender(); // 🔑 renderizamos aplicando buscador y estado
+                applyFiltersAndRender(); // 🔑 renderizamos la tabla
+                renderEstadoChart(ALL_PROCEDURES); // 🔹 también la gráfica
+                applyFiltersAndRender(); // 🔑 renderizamos aplicando buscador y estado
             }
         } catch (error) {
             console.error('Error al cargar procedimientos:', error);
@@ -491,40 +581,45 @@ function escapeHTML(str){
         }
 
         // === Traducciones de estado EN -> ES (incluye variantes en mayúsculas) ===
-        const STATUS_EN_ES = {
-        Draft: 'Borrador',       DRAFT: 'Borrador',
-        Active: 'Activo',        ACTIVE: 'Activo',
-        Pending: 'Pendiente',    PENDING: 'Pendiente',
-        Archived: 'Archivado',   ARCHIVED: 'Archivado',
-        Approved: 'Aprobado',    APPROVED: 'Aprobado',
-        Published: 'Publicado',  PUBLISHED: 'Publicado',
-        Created: 'Creado',       CREATED: 'Creado',
-        'In Review': 'En revisión', IN_REVIEW: 'En revisión'
-        };
+        // Diccionario de traducciones EN → ES
+const STATUS_EN_ES = {
+  Draft: 'Borrador',        DRAFT: 'Borrador',
+  Active: 'Activo',         ACTIVE: 'Activo',
+  Pending: 'Pendiente',     PENDING: 'Pendiente',
+  Archived: 'Archivado',    ARCHIVED: 'Archivado',
+  Approved: 'Aprobado',     APPROVED: 'Aprobado',
+  Published: 'Publicado',   PUBLISHED: 'Publicado',
+  Created: 'En elaboración', CREATED: 'En elaboración',
+  'In progress': 'En elaboración', IN_PROGRESS: 'En elaboración',
+  'Under review': 'En revisión',  UNDER_REVIEW: 'En revisión'
+};
 
-        // Helper: devuelve el estado en español, tolerando null/undefined y mayúsculas
-        function toES(status) {
-        const s = String(status ?? '').trim();
-        return STATUS_EN_ES[s] || STATUS_EN_ES[s.toUpperCase()] || s || '—';
-        }
+// Helper: traduce siempre al español
+function toES(status) {
+  const s = String(status ?? '').trim();
+  return STATUS_EN_ES[s] || STATUS_EN_ES[s.toUpperCase()] || s || '—';
+}
 
-        function getStatusBadge(status) {
-        const es = toES(status);
+// Genera el badge de estado con estilo y texto en español
+function getStatusBadge(status) {
+  const es = toES(status);
 
-        const badgeClassByEs = {
-            'Borrador':   'status-draft',
-            'Creado':     'status-draft',
-            'Activo':     'status-active',
-            'Aprobado':   'status-active',
-            'Publicado':  'status-active',
-            'Pendiente':  'status-pending',
-            'En revisión':'status-pending',
-            'Archivado':  'status-archived'
-        };
+  // Clases de color según estado
+  const badgeClassByEs = {
+    'En elaboración': 'bg-yellow-400 text-gray-800', // amarillo
+    'Borrador':       'bg-yellow-400 text-gray-800', // amarillo
+    'Activo':         'bg-green-500 text-white',    // verde
+    'Aprobado':       'bg-green-500 text-white',    // verde
+    'Publicado':      'bg-blue-500 text-white',     // azul
+    'Pendiente':      'bg-green-500 text-white',    // verde
+    'En revisión':    'bg-green-500 text-white',    // verde
+    'Archivado':      'bg-gray-200 text-gray-800'   // gris neutro
+  };
 
-        const klass = badgeClassByEs[es] || 'status-draft';
-        return `<span class="status-badge ${klass}">${es}</span>`;
-        }
+  const klass = badgeClassByEs[es] || 'bg-gray-200 text-gray-800';
+  return `<span class="px-2 py-1 rounded-full text-sm ${klass}">${es}</span>`;
+}
+
 
 
         function formatDate(dateString) {
