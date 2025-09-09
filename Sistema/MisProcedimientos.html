@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="es">
 
 <head>
@@ -225,38 +225,135 @@
             </header>
 
             <main class="flex-1 overflow-y-auto p-6">
-                <!-- Eliminar toda la sección de breadcrumb y filtros -->
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm" id="card-mis-procedimientos">
+                <!-- Header + filtros -->
+                <div class="px-6 pt-6 pb-4">
+                  
 
-                <!-- Mostrar solo la cuadrícula de procedimientos -->
-                <div id="gridView" class="document-grid">
-                    <!-- Los procedimientos se cargarán aquí dinámicamente -->
+                    <!-- Filtros (separados del table) -->
+                    <div class="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-center">
+                    <!-- buscador -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input id="q" type="search" placeholder="Buscar procedimiento…"
+                            class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- estado -->
+                    <select id="status"
+                            class="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos los estados</option>
+                        <option value="Publicado">Publicado</option>
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="En revisión">En revisión</option>
+                        <option value="Archivado">Archivado</option>
+                         <option value="Creado">Creado</option>
+                    </select>
+
+                   
+                    </div>
                 </div>
 
-                <!-- Loading State -->
-                <div id="loadingState" class="hidden col-span-full text-center py-8">
-                    <i class="fas fa-spinner fa-spin text-blue-500 text-4xl mb-4"></i>
-                    <p class="text-lg text-gray-700">Cargando mis procedimientos...</p>
+                <!-- Separador visual -->
+                <div class="border-t border-gray-200"></div>
+
+                <!-- Tabla -->
+                <div class="px-6 py-4 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 text-gray-600 text-sm">
+                        <tr>
+                        <th class="px-4 py-3 text-left font-semibold">Procedimiento </th>
+                        <th class="px-4 py-3 text-left font-semibold">SubProceso</th>
+                        <th class="px-4 py-3 text-left font-semibold">Estado</th>
+                        <th class="px-4 py-3 text-left font-semibold">Revisado por</th>
+                        <th class="px-4 py-3 text-left font-semibold">Fecha de Revisión</th>
+                        <th class="px-4 py-3 text-center font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyProc" class="divide-y divide-gray-100 bg-white"></tbody>
+                    </table>
+
+                    <!-- estados -->
+                    <div id="loadingState" class="hidden text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-blue-500 text-2xl mb-2"></i>
+                    <p class="text-gray-700">Cargando mis procedimientos...</p>
+                    </div>
+                    <div id="emptyState" class="hidden text-center py-8">
+                    <i class="fas fa-folder-open text-gray-400 text-2xl mb-2"></i>
+                    <p class="text-gray-700">No has creado ningún procedimiento</p>
+                    </div>
+                    <div id="errorState" class="hidden text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
+                    <p class="text-gray-700">Error al cargar tus procedimientos</p>
+                    <p class="text-sm text-gray-500 mt-1" id="errorMessage"></p>
+                    </div>
+                </div>
                 </div>
 
-                <!-- Empty State -->
-                <div id="emptyState" class="hidden col-span-full text-center py-8">
-                    <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
-                    <p class="text-lg text-gray-700">No has creado ningún procedimiento</p>
-                </div>
-
-                <!-- Error State -->
-                <div id="errorState" class="hidden col-span-full text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                    <p class="text-lg text-gray-700">Error al cargar tus procedimientos</p>
-                    <p class="text-sm text-gray-500 mt-2" id="errorMessage"></p>
-                    <button onclick="loadProcedures()"
-                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                        Reintentar
-                    </button>
-                </div>
             </main>
+
         </div>
     </div>
+
+    <script>
+            // Método para renderizar la tabla de Procedimientos
+             function renderProcedures(procedures) {
+            const tbody = document.getElementById('tbodyProc');
+            tbody.innerHTML = '';
+
+            // estados de UI
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+
+            if (!procedures || !procedures.length) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('emptyState').classList.add('hidden');
+
+            procedures.forEach(proc => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const reviewer = proc.ReviewedBy || proc.ReviewerName || '—';
+                const fecha = formatDate(proc.ReviewedAt || proc.UpdatedAt || proc.CreatedAt) || '—';
+                const subproc = proc.SubProcess || '—';
+
+                tr.innerHTML = `
+                <td class="px-4 py-3">
+                    <div class="font-medium text-gray-900">${escapeHTML(proc.Title || '')}</div>
+                </td>
+                <td class="px-4 py-3">${escapeHTML(subproc)}</td>
+                <td class="px-4 py-3">${getStatusBadge(proc.Status)}</td>
+                <td class="px-4 py-3">${escapeHTML(reviewer)}</td>
+                <td class="px-4 py-3">${fecha}</td>
+                <td class="px-4 py-3 text-center">
+                    <button class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded hover:bg-gray-100"
+                            title="Ver"
+                            onclick="window.location.href='Procedimiento.html?id=${encodeURIComponent(proc.ProcedureID)}'">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+// util muy simple para evitar XSS en textos
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+
+            // util muy simple para evitar XSS en textos
+            function escapeHTML(str){
+            return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+            }
+
+
+        </script>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -275,114 +372,160 @@
             await loadProcedures();
         });
 
+        let ALL_PROCEDURES = [];
+        // Filtra por texto y por estado (el select está en ESPAÑOL) y renderiza
+        function applyFiltersAndRender() {
+        const q = document.getElementById('q').value.trim().toLowerCase();
+        const statusEs = document.getElementById('status').value; // 'Aprobado', 'Archivado', etc.
+
+        let data = ALL_PROCEDURES.slice();
+
+        // Filtrar por estado (comparando contra el estado traducido con toES)
+        if (statusEs) {
+            data = data.filter(p => toES(p.Status) === statusEs);
+        }
+
+        // Filtrar por texto (título y subproceso)
+        if (q) {
+            data = data.filter(p =>
+            String(p.Title || '').toLowerCase().includes(q) ||
+            String(p.SubProcess || '').toLowerCase().includes(q)
+            );
+        }
+
+        if (!data.length) {
+            // Limpia la tabla y muestra vacío
+            document.getElementById('tbodyProc').innerHTML = '';
+            showEmptyState();
+            return;
+        }
+
+        renderProcedures(data);
+        }
+
+        // Helper para no disparar demasiados renders al escribir
+        function debounce(fn, delay = 300) {
+        let t;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, args), delay);
+        };
+        }
+
+
         async function loadProcedures() {
-            try {
-                showLoadingState();
+  try {
+    showLoadingState();
 
-                const userData = JSON.parse(localStorage.getItem('userData'));
-                const userId = userData.userId;
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    const userId = userData?.userId;
+    console.log('User ID obtenido:', userId);
 
-                console.log('User ID obtenido:', userId);
+    const response = await fetch(`http://localhost:3000/api/procedures/by-user/me`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
 
-                const response = await fetch(`http://localhost:3000/api/procedures/by-user/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Error al cargar procedimientos');
+    }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Error al cargar procedimientos');
-                }
+    const result = await response.json();
+    console.log('Respuesta de la API:', result);
 
-                const result = await response.json();
-                console.log('Respuesta de la API:', result);
+    // Guardamos TODOS los procedimientos para poder filtrarlos después
+    ALL_PROCEDURES = result.data || result || [];
 
-                // Mostrar todos los procedimientos del usuario (sin filtrar por CreatedBy)
-                const procedures = result.data || result;
-
-                if (!procedures || procedures.length === 0) {
-                    showEmptyState();
-                } else {
-                    renderProcedures(procedures);
-                }
-            } catch (error) {
-                console.error('Error al cargar procedimientos:', error);
-                showErrorState(error.message);
+            if (!ALL_PROCEDURES.length) {
+            showEmptyState();
+            document.getElementById('tbodyProc').innerHTML = '';
+            } else {
+            applyFiltersAndRender(); // 🔑 renderizamos aplicando buscador y estado
             }
+        } catch (error) {
+            console.error('Error al cargar procedimientos:', error);
+            showErrorState(error.message);
+        }
         }
 
-        function renderProcedures(procedures) {
-            const gridView = document.getElementById('gridView');
-            gridView.innerHTML = '';
+        document.addEventListener('DOMContentLoaded', async () => {
+        // Verificar autenticación
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        console.log('Datos de usuario en localStorage:', userData);
 
-            procedures.forEach(proc => {
-                const card = document.createElement('div');
-                card.className = 'folder-card bg-white rounded-lg shadow overflow-hidden transition-all block hover:no-underline';
-                card.onclick = () => {
-                    window.location.href = `Procedimiento.html?id=${proc.ProcedureID}`;
-                };
-
-                card.innerHTML = `
-                <div class="p-4 border-b border-gray-200">
-                    <div class="flex items-center space-x-3 min-w-0">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="font-medium text-gray-800">${proc.Title}</h3>
-                            <p class="text-xs text-gray-500 truncate">${proc.Description || 'Sin descripción'}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="mb-2">
-                        ${getStatusBadge(proc.Status)}
-                    </div>
-                    <div class="text-xs text-gray-400">
-                        Creado el: ${formatDate(proc.CreatedAt)}
-                    </div>
-                </div>
-            `;
-                gridView.appendChild(card);
-            });
-
-            document.getElementById('loadingState').classList.add('hidden');
+        if (!token || !userData) {
+            window.location.href = 'index.html';
+            return;
         }
+
+        // Cargar procedimientos del usuario
+        await loadProcedures();
+
+        // Listeners de filtros
+        document.getElementById('btnFilter').addEventListener('click', applyFiltersAndRender);
+        document.getElementById('status').addEventListener('change', applyFiltersAndRender);
+        document.getElementById('q').addEventListener('input', debounce(applyFiltersAndRender, 250));
+        });
+        
 
         function showLoadingState() {
-            document.getElementById('gridView').classList.add('hidden');
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('errorState').classList.add('hidden');
-            document.getElementById('loadingState').classList.remove('hidden');
+        document.getElementById('loadingState').classList.remove('hidden');
+        document.getElementById('emptyState').classList.add('hidden');
+        document.getElementById('errorState').classList.add('hidden');
         }
 
         function showEmptyState() {
-            document.getElementById('gridView').classList.add('hidden');
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('errorState').classList.add('hidden');
-            document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('errorState').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
         }
 
         function showErrorState(message) {
-            document.getElementById('gridView').classList.add('hidden');
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('errorState').classList.remove('hidden');
-            document.getElementById('errorMessage').textContent = message;
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('emptyState').classList.add('hidden');
+        document.getElementById('errorMessage').textContent = message || 'Ocurrió un error';
+        document.getElementById('errorState').classList.remove('hidden');
+        }
+
+        // === Traducciones de estado EN -> ES (incluye variantes en mayúsculas) ===
+        const STATUS_EN_ES = {
+        Draft: 'Borrador',       DRAFT: 'Borrador',
+        Active: 'Activo',        ACTIVE: 'Activo',
+        Pending: 'Pendiente',    PENDING: 'Pendiente',
+        Archived: 'Archivado',   ARCHIVED: 'Archivado',
+        Approved: 'Aprobado',    APPROVED: 'Aprobado',
+        Published: 'Publicado',  PUBLISHED: 'Publicado',
+        Created: 'Creado',       CREATED: 'Creado',
+        'In Review': 'En revisión', IN_REVIEW: 'En revisión'
+        };
+
+        // Helper: devuelve el estado en español, tolerando null/undefined y mayúsculas
+        function toES(status) {
+        const s = String(status ?? '').trim();
+        return STATUS_EN_ES[s] || STATUS_EN_ES[s.toUpperCase()] || s || '—';
         }
 
         function getStatusBadge(status) {
-            const statusMap = {
-                'Draft': { class: 'status-draft', text: 'Borrador' },
-                'Active': { class: 'status-active', text: 'Activo' },
-                'Pending': { class: 'status-pending', text: 'Pendiente' },
-                'Archived': { class: 'status-archived', text: 'Archivado' }
-            };
+        const es = toES(status);
 
-            const statusInfo = statusMap[status] || { class: 'status-draft', text: status };
-            return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+        const badgeClassByEs = {
+            'Borrador':   'status-draft',
+            'Creado':     'status-draft',
+            'Activo':     'status-active',
+            'Aprobado':   'status-active',
+            'Publicado':  'status-active',
+            'Pendiente':  'status-pending',
+            'En revisión':'status-pending',
+            'Archivado':  'status-archived'
+        };
+
+        const klass = badgeClassByEs[es] || 'status-draft';
+        return `<span class="status-badge ${klass}">${es}</span>`;
         }
+
 
         function formatDate(dateString) {
             if (!dateString) return 'N/A';
