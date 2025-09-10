@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Institucional - Acceso</title>
+    <title>Sistema de Gestión Documental - Acceso</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -39,15 +39,14 @@
 
 <body class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8 rounded-xl overflow-hidden login-container bg-white">
-        <!-- Encabezado Institucional -->
         <div class="gradient-bg py-6 px-8 text-center">
             <div class="flex justify-center mb-4">
                 <div class="bg-white p-3 rounded-full">
-                    <i class="fas fa-university text-3xl text-blue-600"></i>
+                    <img src="Resources/Flor_con_uv_sin_fondo.png" alt="Logo UV" class="w-12 h-12">
                 </div>
             </div>
-            <h2 class="text-2xl font-bold text-white">Portal Institucional</h2>
-            <p class="mt-2 text-blue-100">Sistema de Gestión Documental</p>
+            <h2 class="text-2xl font-bold text-white">Sistema de Gestión Documental</h2>
+            <p class="mt-2 text-blue-100">Universidad Veracruzana</p>
         </div>
 
         <form class="px-8 pt-6 pb-8 mb-4" id="loginForm">
@@ -119,7 +118,6 @@
         </div>
     </div>
 
-    <!-- Modal de ayuda -->
     <div id="helpModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
         <div class="absolute inset-0 bg-black opacity-50"></div>
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -140,11 +138,11 @@
                     <p class="text-gray-700">
                         <span class="font-medium">Personal:</span> Credenciales proporcionadas por RRHH.
                     </p>
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <p class="text-sm text-gray-600">
-                        Si continúa con problemas para acceder, contacte al soporte técnico.
-                    </p>
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <p class="text-sm text-gray-600">
+                            Si continúa con problemas para acceder, contacte al soporte técnico.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -189,7 +187,7 @@
                 // Almacenar datos - AJUSTADO A TU ESTRUCTURA REAL
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('userData', JSON.stringify({
-                    userId: data.user.id,  // Nota: usa 'id' en minúsculas según tu respuesta
+                    userId: data.user.id, // Nota: usa 'id' en minúsculas según tu respuesta
                     name: data.user.nombre,
                     email: data.user.email,
                     departmentId: data.user.direccionId,
@@ -202,6 +200,41 @@
             } catch (error) {
                 console.error('Error en login:', error);
                 alert(`Error: ${error.message}`);
+            }
+        });
+
+        // Script para mostrar/ocultar contraseña
+        const passwordInput = document.getElementById('password');
+        const togglePasswordButton = document.getElementById('togglePassword');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        togglePasswordButton.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+
+        // Inicializar el ícono del ojo (oculto por defecto)
+        eyeIcon.classList.add('fas', 'fa-eye-slash');
+
+        // Script para mostrar/ocultar modal de ayuda
+        const showHelpButton = document.getElementById('showHelp');
+        const helpModal = document.getElementById('helpModal');
+        const closeHelpButton = document.getElementById('closeHelp');
+
+        showHelpButton.addEventListener('click', function() {
+            helpModal.classList.remove('hidden');
+        });
+
+        closeHelpButton.addEventListener('click', function() {
+            helpModal.classList.add('hidden');
+        });
+
+        // Opcional: cerrar modal si se hace clic fuera de él
+        helpModal.addEventListener('click', function(event) {
+            if (event.target === helpModal) {
+                helpModal.classList.add('hidden');
             }
         });
     </script>
