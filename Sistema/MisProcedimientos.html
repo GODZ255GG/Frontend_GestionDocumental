@@ -237,7 +237,6 @@
 
                 <!-- Librería Chart.js -->
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
                 <script>
                     function renderEstadoChart(procedures) {
                     // Normalizamos estados
@@ -320,26 +319,23 @@
 
                     <!-- Filtros (separados del table) -->
                     <div class="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-                    <!-- buscador -->
+                    <!-- Buscador -->
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         <input id="q" type="search" placeholder="Buscar procedimiento…"
                             class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
-                    <!-- estado -->
+                    <!-- Filtro por estado -->
                     <select id="status"
                             class="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Todos los estados</option>
                         <option value="Publicado">Publicado</option>
-                        <option value="Aprobado">Aprobado</option>
                         <option value="En revisión">En revisión</option>
-                        <option value="Archivado">Archivado</option>
-                         <option value="Creado">Creado</option>
+                        <option value="En elaboración">En elaboración</option>
                     </select>
+                </div>
 
-                   
-                    </div>
                 </div>
 
                 <!-- Separador visual -->
@@ -428,10 +424,9 @@
         }
 
 
-// util muy simple para evitar XSS en textos
-function escapeHTML(str){
-  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
+    function escapeHTML(str){
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
 
 
             // util muy simple para evitar XSS en textos
@@ -445,51 +440,47 @@ function escapeHTML(str){
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // Verificar autenticación
-            const token = localStorage.getItem('token');
-            const userData = JSON.parse(localStorage.getItem('userData'));
+    await loadProcedures();
 
-            console.log('Datos de usuario en localStorage:', userData);
+    const searchInput = document.getElementById('q');
+    const statusSelect = document.getElementById('status');
 
-            if (!token || !userData) {
-                window.location.href = 'index.html';
+     searchInput.addEventListener('input', debounce(applyFiltersAndRender));
+
+    statusSelect.addEventListener('change', applyFiltersAndRender);
+});
+
+        let ALL_PROCEDURES = [];
+        function applyFiltersAndRender() {
+            const q = document.getElementById('q').value.trim().toLowerCase();
+            const statusEs = document.getElementById('status').value; 
+
+            console.log('Texto buscado:', q);  // <-- Para depuración
+            console.log('Estado seleccionado:', statusEs);
+
+            let data = [...ALL_PROCEDURES]; // Copia de todos los datos
+
+            if (statusEs) {
+                data = data.filter(p => toES(p.Status) === statusEs);
+            }
+
+            if (q) {
+                data = data.filter(p =>
+                    String(p.Title || '').toLowerCase().includes(q) ||
+                    String(p.SubProcess || '').toLowerCase().includes(q)
+                );
+            }
+
+            if (!data.length) {
+                document.getElementById('tbodyProc').innerHTML = '';
+                showEmptyState();
                 return;
             }
 
-            // Cargar procedimientos del usuario
-            await loadProcedures();
-        });
-
-        let ALL_PROCEDURES = [];
-        // Filtra por texto y por estado (el select está en ESPAÑOL) y renderiza
-        function applyFiltersAndRender() {
-        const q = document.getElementById('q').value.trim().toLowerCase();
-        const statusEs = document.getElementById('status').value; // 'Aprobado', 'Archivado', etc.
-
-        let data = ALL_PROCEDURES.slice();
-
-        // Filtrar por estado (comparando contra el estado traducido con toES)
-        if (statusEs) {
-            data = data.filter(p => toES(p.Status) === statusEs);
+            document.getElementById('emptyState').classList.add('hidden');
+            renderProcedures(data);
         }
 
-        // Filtrar por texto (título y subproceso)
-        if (q) {
-            data = data.filter(p =>
-            String(p.Title || '').toLowerCase().includes(q) ||
-            String(p.SubProcess || '').toLowerCase().includes(q)
-            );
-        }
-
-        if (!data.length) {
-            // Limpia la tabla y muestra vacío
-            document.getElementById('tbodyProc').innerHTML = '';
-            showEmptyState();
-            return;
-        }
-
-        renderProcedures(data);
-        }
 
         // Helper para no disparar demasiados renders al escribir
         function debounce(fn, delay = 300) {
@@ -540,25 +531,7 @@ function escapeHTML(str){
         }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-        // Verificar autenticación
-        const token = localStorage.getItem('token');
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        console.log('Datos de usuario en localStorage:', userData);
-
-        if (!token || !userData) {
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // Cargar procedimientos del usuario
-        await loadProcedures();
-
-        // Listeners de filtros
-        document.getElementById('btnFilter').addEventListener('click', applyFiltersAndRender);
-        document.getElementById('status').addEventListener('change', applyFiltersAndRender);
-        document.getElementById('q').addEventListener('input', debounce(applyFiltersAndRender, 250));
-        });
+        
         
 
         function showLoadingState() {
